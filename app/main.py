@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.core.keys import key_pair
+from app.db.redis import redis_client
 from app.db.session import async_engine
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ async def lifespan(app: FastAPI):
     except FileNotFoundError as e:
         raise RuntimeError(
             f"❌ RSA key file not found: {e}. Did you run openssl keygen?"
-            )
+        )
 
     # 2. connect to database
     try:
@@ -40,7 +41,14 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Database connection established")
     except Exception as e:
         raise RuntimeError(f"❌ Database connection failed: {e}")
-    # 3. connect to redis        ← next
+
+    # 3. connect to redis
+    try:
+        await redis_client.ping()
+        logger.info("✅ Redis connection established")
+    except Exception as e:
+        raise RuntimeError(f"❌ Redis connection failed: {e}")
+
     # 4. connect to pub/sub      ← next
 
     yield
@@ -53,6 +61,9 @@ async def lifespan(app: FastAPI):
     logger.info("✅ Database connections closed")
 
     # 2. close redis connection
+    await redis_client.aclose()
+    logger.info("✅ Redis connection closed")
+
     # 3. close pub/sub connection
 
 
