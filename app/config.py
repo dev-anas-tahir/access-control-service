@@ -20,6 +20,8 @@ class Settings(BaseSettings):
 
     # ──────────── DATABASE ──────────── #
     database_url: PostgresDsn = Field(default=...)
+    pool_size: int = 10
+    max_overflow: int = 20
     redis_url: RedisDsn = Field(default=...)
 
     # ──────────── JWT ──────────── #
