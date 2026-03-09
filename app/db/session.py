@@ -9,7 +9,7 @@ Create an asynchronous SQLAlchemy engine using the database URL from the setting
 `echo=False` option disables SQL query logging, which can be set to `True`
 for debugging purposes.
 """
-async_engine = create_async_engine(
+async_engine: create_async_engine = create_async_engine(
     str(settings.database_url),
     echo=settings.app_debug,
     pool_size=settings.pool_size,
@@ -22,7 +22,7 @@ operations. The `expire_on_commit=False` option prevents SQLAlchemy from expirin
 objects after a commit, which can be useful in certain scenarios where you want
 to keep using the objects after committing changes.
 """
-async_session_factory = async_sessionmaker(
+async_session_factory: async_sessionmaker = async_sessionmaker(
     async_engine,
     expire_on_commit=False,
 )

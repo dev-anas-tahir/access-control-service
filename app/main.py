@@ -2,10 +2,12 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from google.api_core.exceptions import NotFound
 from sqlalchemy import text
 
 from app.config import settings
 from app.core.keys import key_pair
+from app.db.pubsub import pubsub_client, topic_path
 from app.db.redis import redis_client
 from app.db.session import async_engine
 
@@ -49,7 +51,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         raise RuntimeError(f"❌ Redis connection failed: {e}")
 
-    # 4. connect to pub/sub      ← next
+    # 4. connect to pub/sub
+    try:
+        pubsub_client.get_topic(request={"topic": topic_path})
+        logger.info("✅ Pub/Sub topic verified")
+    except NotFound:
+        raise RuntimeError(
+            f"❌ Pub/Sub topic '{topic_path}' not found. Did you create it in GCP?"
+        )
+    except Exception as e:
+        raise RuntimeError(f"❌ Pub/Sub connection failed: {e}")
 
     yield
 
@@ -65,5 +76,8 @@ async def lifespan(app: FastAPI):
     logger.info("✅ Redis connection closed")
 
     # 3. close pub/sub connection
+    pubsub_client.transport.close()
+    logger.info("✅ Pub/Sub connection closed")
+
 
 app = FastAPI(lifespan=lifespan)

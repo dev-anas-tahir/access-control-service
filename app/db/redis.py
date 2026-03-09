@@ -10,4 +10,4 @@ The Redis client will be initialized when the application starts and can be used
 throughout the application to perform Redis operations.
 """
 
-redis_client = Redis.from_url(str(settings.redis_url))
+redis_client: Redis = Redis.from_url(str(settings.redis_url))
