@@ -66,5 +66,4 @@ async def lifespan(app: FastAPI):
 
     # 3. close pub/sub connection
 
-
 app = FastAPI(lifespan=lifespan)
