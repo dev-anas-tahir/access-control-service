@@ -18,12 +18,11 @@ from app.config import settings
 config.set_main_option("sqlalchemy.url", str(settings.database_url))
 
 # ── Import models so Alembic detects tables ──
-from app.models.user import User
-
 from app.models.association import RolePermission, UserRole
 from app.models.audit_log import AuditLog
 from app.models.base import Base
 from app.models.role import Permission, Role
+from app.models.user import User
 
 target_metadata = Base.metadata
 

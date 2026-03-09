@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, UUID, DateTime, ForeignKey, String, func, text
+from sqlalchemy import UUID, DateTime, ForeignKey, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -25,6 +25,6 @@ class AuditLog(Base):
         UUID(as_uuid=True), nullable=True
     )
     payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    timestamp: Mapped[datetime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
