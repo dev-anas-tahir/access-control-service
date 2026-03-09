@@ -3,10 +3,10 @@ import uuid
 from sqlalchemy import UUID, Boolean, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base, TimestampMixin
+from .base import Base, SoftDeleteMixin, TimestampMixin
 
 
-class User(TimestampMixin, Base):
+class User(TimestampMixin, SoftDeleteMixin, Base):
     """
     User model representing a user in the system. This model includes fields for user
     information and authentication.
@@ -28,4 +28,7 @@ class User(TimestampMixin, Base):
     )
     organization_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
+    )
+    roles: Mapped[list["Role"]] = relationship(  # type: ignore  # noqa: F821
+        "Role", secondary="user_roles", back_populates="users"
     )

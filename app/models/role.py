@@ -26,6 +26,12 @@ class Role(Base):
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    users: Mapped[list["User"]] = relationship(  # noqa: F821 # type: ignore
+        "User", secondary="user_roles", back_populates="roles"
+    )
+    permissions: Mapped[list["Permission"]] = relationship(
+        "Permission", secondary="role_permissions", back_populates="roles"
+    )
 
 
 class Permission(Base):
