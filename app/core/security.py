@@ -34,7 +34,7 @@ def create_access_token(
     username: str,
     roles: list[str],
     permissions: list[str],
-    is_super_admin: bool,
+    is_super_user: bool,
 ) -> str:
     """Create an access token."""
     now = datetime.now(timezone.utc)
@@ -48,7 +48,7 @@ def create_access_token(
         "username": username,
         "roles": roles,
         "permissions": permissions,
-        "is_super_admin": is_super_admin,
+        "is_super_user": is_super_user,
     }
     return jwt.encode(payload, key_pair.private_key, algorithm=settings.jwt_algorithm)
 
