@@ -11,6 +11,8 @@ from app.models.base import Base
 
 
 class AuditLog(Base):
+    """Model for audit logs tracking changes in user roles and permissions."""
+
     __tablename__ = "audit_logs"
 
     id: Mapped[uuid.UUID] = mapped_column(
