@@ -3,6 +3,14 @@ This module defines the AuthService, which contains business logic
 related to authentication and user management, such as signing up
 new users. The AuthService interacts with the database to perform
 operations like creating users and assigning roles.
+
+Example:
+    ```python
+    from app.services.auth_service import signup
+    
+    # Create a new user
+    new_user = await signup(db_session, signup_data)
+    ```
 """
 
 import secrets
@@ -30,17 +38,34 @@ from app.schemas.auth import LoginRequest, SignupRequest
 
 async def signup(db: AsyncSession, data: SignupRequest) -> User:
     """
-    Sign up a new user by creating a User record in the database. It checks for
-    the uniqueness of the username and email, hashes the password, and assigns a role
-    to the user.
+    Sign up a new user by creating a User record in the database.
+
+    This function validates the uniqueness of the username and email, hashes the
+    password, and assigns the default 'viewer' role to the new user.
+
     Args:
-        db (AsyncSession): The database session used to perform operations.
-        data (SignupRequest): The data required to create a new user includes username,
-        email, password, and an optional role.
+        db: The database session used to perform operations.
+        data: The data required to create a new user, including username,
+            email, and password.
+
     Returns:
-        User: The newly created User object.
+        The newly created User object with assigned role.
+
     Raises:
         UniquenessError: If the username or email already exists in the database.
+        RuntimeError: If the default 'viewer' role is not found in the database.
+
+    Example:
+        ```python
+        from app.schemas.auth import SignupRequest
+        
+        signup_data = SignupRequest(
+            username="john_doe",
+            password="SecurePass123!",
+            email="john@example.com"
+        )
+        new_user = await signup(db_session, signup_data)
+        ```
     """
     # 1. Check username uniqueness
     result = await db.execute(select(User).where(User.username == data.username))
@@ -83,16 +108,32 @@ async def signup(db: AsyncSession, data: SignupRequest) -> User:
 
 async def login(db: AsyncSession, data: LoginRequest) -> str:
     """
-    Authenticate a user by verifying their username and password. If authentication
-    is successful, a new access token is generated and returned.
+    Authenticate a user by verifying their username and password.
+
+    If authentication is successful, a new access token and refresh token are
+    generated and returned.
+
     Args:
-        db (AsyncSession): The database session used to perform operations.
-        data (LoginRequest): The data required for login, including username and
-        password.
+        db: The database session used to perform operations.
+        data: The data required for login, including username and password.
+
     Returns:
-        str: A new access token if authentication is successful.
+        Tuple[str, str]: A tuple containing the new access token and refresh token
+            if authentication is successful.
+
     Raises:
         ValueError: If the username does not exist or the password is incorrect.
+
+    Example:
+        ```python
+        from app.schemas.auth import LoginRequest
+        
+        login_data = LoginRequest(
+            username="john_doe",
+            password="SecurePass123!"
+        )
+        access_token, refresh_token = await login(db_session, login_data)
+        ```
     """
     # 1. check if the username exists in the db
     result = await db.execute(
@@ -139,16 +180,28 @@ async def login(db: AsyncSession, data: LoginRequest) -> str:
 
 async def refresh_token(db: AsyncSession, refresh_token: str) -> str:
     """
-    Refresh an access token using a valid refresh token. It checks the validity of the
-    refresh token, retrieves the associated user, and generates a new access token.
+    Refresh an access token using a valid refresh token.
+
+    This function checks the validity of the refresh token, retrieves the
+    associated user, and generates a new access token. It also rotates the
+    refresh token by generating a new one.
+
     Args:
-        db (AsyncSession): The database session used to perform operations.
-        refresh_token (str): The refresh token provided by the client.
+        db: The database session used to perform operations.
+        refresh_token: The refresh token provided by the client.
+
     Returns:
-        str: A new access token if the refresh token is valid.
+        Tuple[str, str]: A tuple containing the new access token and the new
+            refresh token if the refresh token is valid.
+
     Raises:
         ValueError: If the refresh token is invalid or expired.
-    """
+
+    Example:
+        ```python
+        access_token, new_refresh_token = await refresh_token(db_session, old_refresh_token)
+        ```
+    """  # noqa: E501
     # 1. Check if the refresh token exists in Redis
     user_id = await redis_client.get(f"refresh_token:{refresh_token}")
     if not user_id:
@@ -189,11 +242,20 @@ async def refresh_token(db: AsyncSession, refresh_token: str) -> str:
 
 async def logout(refresh_token: str, payload: dict) -> None:
     """
-    Log out a user by invalidating their refresh token. This is done by deleting the
-    refresh token from Redis, ensuring it can no longer be used to generate new access
-    tokens.
+    Log out a user by invalidating their refresh token.
+
+    This function invalidates the refresh token by deleting it from Redis,
+    ensuring it can no longer be used to generate new access tokens. It also
+    revokes the access token by adding its JTI to a revoked tokens list.
+
     Args:
-        refresh_token (str): The refresh token to be invalidated.
+        refresh_token: The refresh token to be invalidated.
+        payload: The decoded JWT payload containing token information.
+
+    Example:
+        ```python
+        await logout(refresh_token, jwt_payload)
+        ```
     """
     # 1. Delete the refresh token from Redis to invalidate it
     await redis_client.delete(f"refresh_token:{refresh_token}")

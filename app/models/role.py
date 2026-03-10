@@ -9,8 +9,20 @@ from app.models.base import Base
 
 class Role(Base):
     """
-    Role model representing a role in the system. This model includes fields for role
-    information and relationships to users.
+    Role model representing a role in the system.
+
+    This model includes fields for role information and relationships to users
+    and permissions.
+
+    Attributes:
+        id: Unique identifier for the role (UUID).
+        name: Unique name for the role (max 100 characters).
+        description: Description of the role (optional).
+        is_system: Flag indicating if the role is a system role.
+        created_by: Reference to the user who created this role (optional).
+        users: Relationship to User objects through the user_roles association table.
+        permissions: Relationship to Permission objects through the role_permissions 
+                    association table.
     """
 
     __tablename__ = "roles"
@@ -37,7 +49,16 @@ class Role(Base):
 class Permission(Base):
     """
     Permission model representing a permission in the system.
+
     This model includes fields for permission information and relationships to roles.
+
+    Attributes:
+        id: Unique identifier for the permission (UUID).
+        resource: Resource this permission applies to (max 100 characters).
+        action: Action that can be performed on the resource (max 100 characters).
+        scope_key: Unique key combining resource and action for permission identification
+            (max 255 characters).
+        created_at: Timestamp when the permission was created.
     """
 
     __tablename__ = "permissions"

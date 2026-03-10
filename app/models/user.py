@@ -8,8 +8,20 @@ from .base import Base, SoftDeleteMixin, TimestampMixin
 
 class User(TimestampMixin, SoftDeleteMixin, Base):
     """
-    User model representing a user in the system. This model includes fields for user
-    information and authentication.
+    User model representing a user in the system.
+
+    This model includes fields for user information and authentication, with
+    relationships to roles and permissions.
+
+    Attributes:
+        id: Unique identifier for the user (UUID).
+        username: Unique username for the user (max 255 characters).
+        email: Email address for the user (max 255 characters, optional).
+        password_hash: Hashed password for authentication.
+        is_super_user: Flag indicating if the user has super user privileges.
+        is_active: Flag indicating if the user account is active.
+        organization_id: Reference to the user's organization (optional).
+        roles: Relationship to Role objects through the user_roles association table.
     """
 
     __tablename__ = "users"
