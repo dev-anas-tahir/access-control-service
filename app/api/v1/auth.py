@@ -82,9 +82,7 @@ async def login(
     """
     try:
         access_token, refresh_token = await auth_service.login(db, data)
-        response.set_cookie(
-            value=refresh_token, **COOKIE_SETTINGS
-        )
+        response.set_cookie(value=refresh_token, **COOKIE_SETTINGS)
         return TokenResponse(access_token=access_token)
     except ValueError as e:
         raise HTTPException(
@@ -121,9 +119,7 @@ async def refresh(
         access_token, new_refresh_token = await auth_service.refresh_token(
             db, refresh_token
         )
-        response.set_cookie(
-            value=new_refresh_token, **COOKIE_SETTINGS
-        )
+        response.set_cookie(value=new_refresh_token, **COOKIE_SETTINGS)
         return TokenResponse(access_token=access_token)
     except ValueError as e:
         raise HTTPException(

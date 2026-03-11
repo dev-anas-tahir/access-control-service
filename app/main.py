@@ -19,10 +19,11 @@ Example:
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from google.api_core.exceptions import NotFound
 from sqlalchemy import text
 
+from app.api.v1 import auth, jwks
 from app.config import settings
 from app.core.keys import key_pair
 from app.db.pubsub import pubsub_client, topic_path
@@ -113,9 +114,27 @@ async def lifespan(app: FastAPI):
     await redis_client.aclose()
     logger.info("✅ Redis connection closed")
 
-    # 3. close pub/sub connection
-    pubsub_client.transport.close()
+    # 3. stop the pub/sub connection
+    pubsub_client.stop()
     logger.info("✅ Pub/Sub connection closed")
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Access Control Service",
+    version="1.0.0",
+    description="Authentication, authorization, and identity management",
+    docs_url="/docs" if settings.app_env.lower() != "production" else None,
+    redoc_url=None,
+    lifespan=lifespan,
+)
+
+# ──────────── JWKS at root ──────────── #
+app.include_router(jwks.router)
+
+# ──────────── API v1 ──────────── #
+api_v1 = APIRouter(prefix="/api/v1")
+api_v1.include_router(auth.router)
+app.include_router(api_v1)
+
+# ──────────── API v2 (future) ──────────── #
+api_v2 = APIRouter(prefix="/api/v2")
