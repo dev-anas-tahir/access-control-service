@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 6843605a0377
+Revision ID: 338c5cdac49c
 Revises:
-Create Date: 2026-03-10 03:38:53.639809
+Create Date: 2026-03-11 07:44:59.661667
 
 """
 
@@ -13,7 +13,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "6843605a0377"
+revision: str = "338c5cdac49c"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,7 +31,17 @@ def upgrade() -> None:
         sa.Column("action", sa.String(length=100), nullable=False),
         sa.Column("scope_key", sa.String(length=255), nullable=False),
         sa.Column(
+            "is_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False
+        ),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column(
             "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
             nullable=False,
@@ -107,6 +117,22 @@ def upgrade() -> None:
             "is_system", sa.Boolean(), server_default=sa.text("false"), nullable=False
         ),
         sa.Column("created_by", sa.UUID(), nullable=True),
+        sa.Column(
+            "is_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False
+        ),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["created_by"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
