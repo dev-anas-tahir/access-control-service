@@ -55,8 +55,6 @@ class AuditLogResponse(BaseModel):
     """Response schema for audit log entries."""
 
     model_config = ConfigDict(from_attributes=True)
-    # YOUR TURN — map from AuditLog model
-    # what fields should be visible in the audit log response?
     id: UUID
     actor_id: UUID | None
     action: str

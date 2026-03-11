@@ -1,3 +1,21 @@
+"""
+Main FastAPI application for the access control service.
+
+This module defines the FastAPI application with lifespan management for handling
+startup and shutdown events. It manages connections to various services including
+database, Redis, and Google Cloud Pub/Sub.
+
+The application includes:
+- Startup tasks: Loading RSA keys, connecting to database, Redis, and Pub/Sub
+- Shutdown tasks: Closing all connections gracefully
+- Health checks and monitoring
+
+Example:
+    ```bash
+    uvicorn app.main:app --reload
+    ```
+"""
+
 import logging
 from contextlib import asynccontextmanager
 
@@ -17,11 +35,31 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Lifespan context manager to handle startup and shutdown events for the
-    FastAPI application
-    This function will be called when the application starts and stops, allowing
+    Lifespan context manager to handle startup and shutdown events for the FastAPI.
+
+    This function is called when the application starts and stops, allowing
     us to perform necessary initialization and cleanup tasks such as loading RSA
-    keys, connecting to databases, etc.
+    keys, connecting to databases, and managing service connections.
+
+    During startup, this function:
+    - Loads RSA key pairs for JWT signing
+    - Establishes database connection
+    - Connects to Redis
+    - Verifies Pub/Sub topic availability
+
+    During shutdown, this function:
+    - Closes database connections
+    - Closes Redis connection
+    - Closes Pub/Sub connection
+
+    Args:
+        app: The FastAPI application instance.
+
+    Yields:
+        None: Yields control back to the application during its operational period.
+
+    Raises:
+        RuntimeError: If any of the required services fail to connect during startup.
     """
 
     # ──────────── START UP ──────────── #
