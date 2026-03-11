@@ -3,8 +3,8 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import UUID, DateTime, ForeignKey, func, text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import UUID, DateTime, ForeignKey, func
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
@@ -12,7 +12,8 @@ from app.models.base import Base
 class UserRole(Base):
     """
     Association table between users and roles,
-    representing which roles are assigned to which users."""
+    representing which roles are assigned to which users.
+    """
 
     __tablename__ = "user_roles"
 

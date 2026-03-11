@@ -2,13 +2,14 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.association import RolePermission, UserRole
 from app.models.audit_log import AuditLog
 from app.models.role import Permission, Role
+from app.models.user import User
 from app.schemas.role import PermissionCreate, RoleCreate
 
 
@@ -36,12 +37,17 @@ async def create_role(
     data: RoleCreate,
     actor_id: str,  # from JWT payload["sub"]
 ) -> Role:
+    # 1. Check if role already exists
     result = await db.execute(select(Role).where(Role.name == data.name))
     if result.scalar_one_or_none():
         raise ValueError("Role name already exists")
+
+    # 2. Create the role
     new_role = Role(name=data.name, description=data.description, created_by=actor_id)
     db.add(new_role)
     await db.flush()  # generates new_role.id without committing
+
+    # 3. Audit log
     await _write_audit_log(
         db,
         actor_id=actor_id,
@@ -50,6 +56,7 @@ async def create_role(
         entity_id=new_role.id,
         payload={"name": new_role.name, "description": new_role.description},
     )
+
     await db.commit()
     await db.refresh(new_role)
     return new_role
@@ -65,7 +72,7 @@ async def delete_role(db: AsyncSession, role_id: str, actor_id: str) -> None:
     # 2. Guard: is_system=True → raise error
     if role.is_system:
         raise PermissionError("Cannot delete system role")
-    
+
     # 3. Soft delete
     role.is_deleted = True
     role.deleted_at = datetime.now(timezone.utc)
@@ -79,6 +86,7 @@ async def delete_role(db: AsyncSession, role_id: str, actor_id: str) -> None:
         entity_id=role.id,
         payload={"name": role.name},
     )
+
     await db.commit()
 
 
@@ -109,12 +117,12 @@ async def assign_permission(
         )
         db.add(permission)
         await db.flush()
-    
+
     # 3. Check not laready assigned
     already_assigned = any(p.id == permission.id for p in role.permissions)
     if already_assigned:
         raise ValueError("Permission already assigned")
-    
+
     # 4. Create association
     role_perm = RolePermission(
         role_id=role.id,
@@ -140,22 +148,110 @@ async def assign_permission(
 async def revoke_permission(
     db: AsyncSession, role_id: str, scope: str, actor_id: str
 ) -> None:
-    # YOUR TURN
-    pass
+    result = await db.execute(
+        select(Role).where(Role.id == role_id).options(selectinload(Role.permissions))
+    )
+    role = result.scalar_one_or_none()
+    if not role:
+        raise ValueError("Role not found")
+
+    # 2. Find permission
+    result = await db.execute(select(Permission).where(Permission.scope_key == scope))
+    permission = result.scalar_one_or_none()
+    if not permission:
+        raise ValueError("Permission not found")
+
+    # 3. Delete association
+    await db.execute(
+        delete(RolePermission).where(
+            RolePermission.role_id == role.id,
+            RolePermission.permission_id == permission.id,
+        )
+    )
+
+    # 5. Audit log
+    await _write_audit_log(
+        db,
+        actor_id=actor_id,
+        action="PERMISSION_REVOKED",
+        entity_type="Role",
+        entity_id=role.id,
+        payload={"scope_key": scope, "role_name": role.name},
+    )
+
+    await db.commit()
 
 
 async def assign_role_to_user(
     db: AsyncSession, user_id: str, role_id: str, actor_id: str
 ) -> UserRole:
-    # YOUR TURN
-    pass
+    # 1. Get the user
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise ValueError("Invalid user")
+
+    # 2. Get the role
+    result = await db.execute(select(Role).where(Role.id == role_id))
+    role = result.scalar_one_or_none()
+    if not role:
+        raise ValueError("Invalid role")
+
+    # 3. Record the assignment
+    user_role = UserRole(user_id=user.id, role_id=role.id, assigned_by=actor_id)
+    db.add(user_role)
+
+    # 4. Audit log
+    await _write_audit_log(
+        db,
+        actor_id=actor_id,
+        action="USER_ROLE_ASSIGNED",
+        entity_type="UserRole",
+        entity_id=user.id,
+        payload={"user": user.username, "role": role.name},
+    )
+
+    await db.flush()  # get user_role ids
+    await db.commit()
+    await db.refresh(user_role)
+    return user_role
 
 
 async def revoke_role_from_user(
     db: AsyncSession, user_id: str, role_id: str, actor_id: str
 ) -> None:
-    # YOUR TURN
-    pass
+    # 1. Get the user
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise ValueError("Invalid user")
+
+    # 2. Get the role
+    result = await db.execute(select(Role).where(Role.id == role_id))
+    role = result.scalar_one_or_none()
+    if not role:
+        raise ValueError("Invalid role")
+
+    # 3. Revoke the role
+    await db.execute(
+        delete(UserRole).where(
+            UserRole.user_id == user.id,
+            UserRole.role_id == role.id, 
+        )
+    )
+
+    # 4. Audit log
+    await _write_audit_log(
+        db,
+        actor_id=actor_id,
+        action="USER_ROLE_REVOKED",
+        entity_type="UserRole",
+        entity_id=user.id,
+        payload={"user": user.username, "role": role.name},
+    )
+
+    await db.commit()
+    return
 
 
 async def get_audit_logs(
@@ -163,5 +259,18 @@ async def get_audit_logs(
     page: int = 1,
     page_size: int = 20,
 ) -> list[AuditLog]:
-    # YOUR TURN
-    pass
+    # 1. Calculate offset based on page and page_size
+    offset = (page - 1) * page_size
+
+    # 2. Query to get audit logs with pagination, ordered by created_at descending
+    query = (
+        select(AuditLog)
+        .order_by(AuditLog.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+
+    result = await db.execute(query)
+    audit_logs = result.scalars().all()
+
+    return audit_logs
