@@ -15,14 +15,14 @@ Example:
     ```python
     from app.models.user import User
     from app.models.role import Role
-    
+
     # Create a new user
     user = User(
     username="john_doe",
     email="john@example.com",
     password="securepassword"
     )
-    
+
     # Assign a role to the user
     role = Role(name="admin")
     user.roles.append(role)

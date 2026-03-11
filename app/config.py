@@ -8,10 +8,10 @@ configuration for database connections, JWT authentication, and cloud services.
 Example:
     ```python
     from app.config import settings
-    
+
     # Access database URL
     db_url = settings.database_url
-    
+
     # Access JWT settings
     jwt_expire_minutes = settings.jwt_access_token_expire_minutes
     ```
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
         gcp_project_id: Google Cloud Platform project ID.
         pubsub_topic_id: Pub/Sub topic ID for event publishing.
     """
-    
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",

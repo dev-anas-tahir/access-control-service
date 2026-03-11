@@ -14,10 +14,10 @@ Services are designed to:
 Example:
     ```python
     from app.services.auth_service import signup, login
-    
+
     # Sign up a new user
     new_user = await signup(db_session, signup_data)
-    
+
     # Authenticate a user
     access_token, refresh_token = await login(db_session, login_data)
     ```

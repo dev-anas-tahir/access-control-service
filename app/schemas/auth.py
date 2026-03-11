@@ -12,7 +12,7 @@ The schemas are designed to:
 Example:
     ```python
     from app.schemas.auth import SignupRequest
-    
+
     # Create a signup request
     signup_data = SignupRequest(
         username="john_doe",
@@ -60,7 +60,7 @@ class SignupRequest(BaseModel):
             ```python
             # Valid password
             password = "MyPassword123!"
-            
+
             # Invalid password (missing special character)
             # password = "MyPassword123"  # Would raise ValueError
             ```
@@ -152,4 +152,3 @@ class MeResponse(BaseModel):
     roles: list[str]
     permissions: list[str]
     is_super_user: bool
-    created_at: datetime

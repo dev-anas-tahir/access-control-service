@@ -21,7 +21,7 @@ class Role(Base):
         is_system: Flag indicating if the role is a system role.
         created_by: Reference to the user who created this role (optional).
         users: Relationship to User objects through the user_roles association table.
-        permissions: Relationship to Permission objects through the role_permissions 
+        permissions: Relationship to Permission objects through the role_permissions
                     association table.
     """
 

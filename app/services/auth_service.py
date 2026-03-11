@@ -7,7 +7,7 @@ operations like creating users and assigning roles.
 Example:
     ```python
     from app.services.auth_service import signup
-    
+
     # Create a new user
     new_user = await signup(db_session, signup_data)
     ```
@@ -58,7 +58,7 @@ async def signup(db: AsyncSession, data: SignupRequest) -> User:
     Example:
         ```python
         from app.schemas.auth import SignupRequest
-        
+
         signup_data = SignupRequest(
             username="john_doe",
             password="SecurePass123!",
@@ -127,7 +127,7 @@ async def login(db: AsyncSession, data: LoginRequest) -> str:
     Example:
         ```python
         from app.schemas.auth import LoginRequest
-        
+
         login_data = LoginRequest(
             username="john_doe",
             password="SecurePass123!"

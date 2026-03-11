@@ -15,7 +15,7 @@ The application is structured into several modules:
 Example:
     ```python
     from app.main import app
-    
+
     # Run the application
     if __name__ == "__main__":
         import uvicorn
