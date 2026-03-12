@@ -6,6 +6,12 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.exceptions import (
+    AlreadyAssignedError,
+    NotFoundError,
+    SystemRoleError,
+    UniquenessError,
+)
 from app.models.association import RolePermission, UserRole
 from app.models.audit_log import AuditLog
 from app.models.role import Permission, Role
@@ -40,7 +46,7 @@ async def create_role(
     # 1. Check if role already exists
     result = await db.execute(select(Role).where(Role.name == data.name))
     if result.scalar_one_or_none():
-        raise ValueError("Role name already exists")
+        raise UniquenessError("Role name already exists")
 
     # 2. Create the role
     new_role = Role(name=data.name, description=data.description, created_by=actor_id)
@@ -67,11 +73,11 @@ async def delete_role(db: AsyncSession, role_id: str, actor_id: str) -> None:
     result = await db.execute(select(Role).where(Role.id == role_id))
     role = result.scalar_one_or_none()
     if not role:
-        raise ValueError("Role not found")
+        raise NotFoundError("Role not found")
 
     # 2. Guard: is_system=True → raise error
     if role.is_system:
-        raise PermissionError("Cannot delete system role")
+        raise SystemRoleError("Cannot delete system role")
 
     # 3. Soft delete
     role.is_deleted = True
@@ -101,7 +107,7 @@ async def assign_permission(
     )
     role = result.scalar_one_or_none()
     if not role:
-        raise ValueError("Role not found")
+        raise NotFoundError("Role not found")
 
     # 2. Find or create permission
     scope_key = f"{data.resource}:{data.action}"
@@ -121,7 +127,7 @@ async def assign_permission(
     # 3. Check not laready assigned
     already_assigned = any(p.id == permission.id for p in role.permissions)
     if already_assigned:
-        raise ValueError("Permission already assigned")
+        raise AlreadyAssignedError("Permission already assigned")
 
     # 4. Create association
     role_perm = RolePermission(
@@ -153,13 +159,13 @@ async def revoke_permission(
     )
     role = result.scalar_one_or_none()
     if not role:
-        raise ValueError("Role not found")
+        raise NotFoundError("Role not found")
 
     # 2. Find permission
     result = await db.execute(select(Permission).where(Permission.scope_key == scope))
     permission = result.scalar_one_or_none()
     if not permission:
-        raise ValueError("Permission not found")
+        raise NotFoundError("Permission not found")
 
     # 3. Delete association
     await db.execute(
@@ -189,13 +195,13 @@ async def assign_role_to_user(
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-        raise ValueError("Invalid user")
+        raise NotFoundError("User not found")
 
     # 2. Get the role
     result = await db.execute(select(Role).where(Role.id == role_id))
     role = result.scalar_one_or_none()
     if not role:
-        raise ValueError("Invalid role")
+        raise NotFoundError("Role not found")
 
     # 3. Record the assignment
     user_role = UserRole(user_id=user.id, role_id=role.id, assigned_by=actor_id)
@@ -224,19 +230,19 @@ async def revoke_role_from_user(
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-        raise ValueError("Invalid user")
+        raise NotFoundError("User not found")
 
     # 2. Get the role
     result = await db.execute(select(Role).where(Role.id == role_id))
     role = result.scalar_one_or_none()
     if not role:
-        raise ValueError("Invalid role")
+        raise NotFoundError("Role not found")
 
     # 3. Revoke the role
     await db.execute(
         delete(UserRole).where(
             UserRole.user_id == user.id,
-            UserRole.role_id == role.id, 
+            UserRole.role_id == role.id,
         )
     )
 

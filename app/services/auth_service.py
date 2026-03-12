@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
-from app.core.exceptions import UniquenessError
+from app.core.exceptions import NotFoundError, UniquenessError
 from app.core.security import (
     create_access_token,
     hash_password,
@@ -215,7 +215,7 @@ async def refresh_token(db: AsyncSession, refresh_token: str) -> str:
     )
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
-        raise ValueError("User not found or inactive")
+        raise NotFoundError("User not found or inactive")
 
     # 3. Generate a new access token
     access_token = create_access_token(

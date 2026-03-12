@@ -10,3 +10,21 @@ class UniquenessError(Exception):
     """Custom exception raised when a username is already taken."""
 
     pass
+
+
+class NotFoundError(Exception):
+    """Raised when a requested resource does not exist."""
+
+    pass
+
+
+class SystemRoleError(Exception):
+    """Raised when attempting to modify a protected system role."""
+
+    pass
+
+
+class AlreadyAssignedError(Exception):
+    """Raised when a role or permission is already assigned."""
+
+    pass

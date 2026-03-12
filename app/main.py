@@ -23,7 +23,7 @@ from fastapi import APIRouter, FastAPI
 from google.api_core.exceptions import NotFound
 from sqlalchemy import text
 
-from app.api.v1 import auth, jwks
+from app.api.v1 import admin, auth, jwks
 from app.config import settings
 from app.core.keys import key_pair
 from app.db.pubsub import pubsub_client, topic_path
@@ -134,6 +134,7 @@ app.include_router(jwks.router)
 # ──────────── API v1 ──────────── #
 api_v1 = APIRouter(prefix="/api/v1")
 api_v1.include_router(auth.router)
+api_v1.include_router(admin.router)
 app.include_router(api_v1)
 
 # ──────────── API v2 (future) ──────────── #
