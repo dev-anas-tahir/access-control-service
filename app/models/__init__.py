@@ -18,9 +18,9 @@ Example:
 
     # Create a new user
     user = User(
-    username="john_doe",
-    email="john@example.com",
-    password="securepassword"
+        username="john_doe",
+        email="john@example.com",
+        password="securepassword"
     )
 
     # Assign a role to the user
@@ -28,3 +28,10 @@ Example:
     user.roles.append(role)
     ```
 """
+
+from .association import RolePermission, UserRole
+from .audit_log import AuditLog
+from .role import Permission, Role
+from .user import User
+
+__all__ = ["User", "Role", "Permission", "UserRole", "RolePermission", "AuditLog"]

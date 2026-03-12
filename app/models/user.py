@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import UUID, Boolean, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base, SoftDeleteMixin, TimestampMixin
+from app.models.base import Base, SoftDeleteMixin, TimestampMixin
 
 
 class User(TimestampMixin, SoftDeleteMixin, Base):
@@ -42,5 +42,9 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
         UUID(as_uuid=True), nullable=True
     )
     roles: Mapped[list["Role"]] = relationship(  # type: ignore  # noqa: F821
-        "Role", secondary="user_roles", back_populates="users"
+        "Role",
+        secondary="user_roles",
+        primaryjoin="User.id == UserRole.user_id",
+        secondaryjoin="UserRole.role_id == Role.id",
+        back_populates="users",
     )

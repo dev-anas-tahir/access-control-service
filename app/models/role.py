@@ -1,6 +1,7 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import UUID, Boolean, ForeignKey, String, Text, text
+from sqlalchemy import UUID, Boolean, DateTime, ForeignKey, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, SoftDeleteMixin, TimestampMixin
@@ -38,14 +39,18 @@ class Role(SoftDeleteMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     users: Mapped[list["User"]] = relationship(  # noqa: F821 # type: ignore
-        "User", secondary="user_roles", back_populates="roles"
+        "User",
+        secondary="user_roles",
+        primaryjoin="Role.id == UserRole.role_id",
+        secondaryjoin="UserRole.user_id == User.id",
+        back_populates="roles",
     )
     permissions: Mapped[list["Permission"]] = relationship(
         "Permission", secondary="role_permissions", back_populates="roles"
     )
 
 
-class Permission(SoftDeleteMixin, TimestampMixin, Base):
+class Permission(Base):
     """
     Permission model representing a permission in the system.
 
@@ -68,3 +73,9 @@ class Permission(SoftDeleteMixin, TimestampMixin, Base):
     resource: Mapped[str] = mapped_column(String(100), nullable=False)
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     scope_key: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    roles: Mapped[list["Role"]] = relationship(  # type: ignore
+        "Role", secondary="role_permissions", back_populates="permissions"
+    )

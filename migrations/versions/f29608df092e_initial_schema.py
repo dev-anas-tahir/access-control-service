@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 338c5cdac49c
+Revision ID: f29608df092e
 Revises:
-Create Date: 2026-03-11 07:44:59.661667
+Create Date: 2026-03-12 07:36:41.441655
 
 """
 
@@ -13,7 +13,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "338c5cdac49c"
+revision: str = "f29608df092e"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,17 +31,7 @@ def upgrade() -> None:
         sa.Column("action", sa.String(length=100), nullable=False),
         sa.Column("scope_key", sa.String(length=255), nullable=False),
         sa.Column(
-            "is_deleted", sa.Boolean(), server_default=sa.text("false"), nullable=False
-        ),
-        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column(
             "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.Column(
-            "updated_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("now()"),
             nullable=False,
