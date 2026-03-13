@@ -64,6 +64,7 @@ class Settings(BaseSettings):
 
     # ──────────── DATABASE ──────────── #
     database_url: PostgresDsn = Field(default=...)
+    test_database_url: PostgresDsn | None = None
     pool_size: int = 10
     max_overflow: int = 20
     redis_url: RedisDsn = Field(default=...)
