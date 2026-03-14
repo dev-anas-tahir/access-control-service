@@ -1,6 +1,11 @@
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from app.config import settings
 
@@ -9,7 +14,7 @@ Create an asynchronous SQLAlchemy engine using the database URL from the setting
 `echo=False` option disables SQL query logging, which can be set to `True`
 for debugging purposes.
 """
-async_engine: create_async_engine = create_async_engine(
+async_engine: AsyncEngine = create_async_engine(
     str(settings.database_url),
     echo=settings.app_debug,
     pool_size=settings.pool_size,
