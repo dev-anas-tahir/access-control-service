@@ -3,9 +3,9 @@ from google.cloud.pubsub_v1 import PublisherClient
 from app.config import settings
 
 """
-Create a Google Cloud Pub/Sub publisher client instance using the project ID from the 
-settings.This client will be used to publish messages to the specified Pub/Sub topic for
-event-driven communication between services. The publisher client will be initialized
+Create a Google Cloud Pub/Sub publisher client instance using the project ID from the
+settings. This client will be used to publish messages to the specified Pub/Sub topic
+for event-driven communication between services. The publisher client will be initialized
 when the application starts and can be used throughout the application lifecycle
 """
 pubsub_client: PublisherClient = PublisherClient()
