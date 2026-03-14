@@ -196,6 +196,7 @@ async def refresh_token(db: AsyncSession, refresh_token: str) -> str:
 
     Raises:
         ValueError: If the refresh token is invalid or expired.
+        NotFoundError: If the user not exists or is inactive
 
     Example:
         ```python
