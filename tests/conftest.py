@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -114,3 +116,12 @@ async def client(override_get_db):
         base_url="http://test",
     ) as ac:
         yield ac
+
+
+# ──────────── Overrides Lifespan ──────────── #
+@asynccontextmanager
+async def mock_lifespan(app):
+    yield
+
+
+app.router.lifespan_context = mock_lifespan
