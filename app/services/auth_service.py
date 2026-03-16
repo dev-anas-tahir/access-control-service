@@ -100,8 +100,8 @@ async def signup(db: AsyncSession, data: SignupRequest) -> User:
     user_role = UserRole(user_id=new_user.id, role_id=viewer_role.id)
     db.add(user_role)
 
-    # 7. Commit and refresh
-    await db.commit()
+    # 7. Flush and refresh
+    await db.flush()
     await db.refresh(new_user)
     return new_user
 
@@ -153,7 +153,6 @@ async def login(db: AsyncSession, data: LoginRequest) -> str:
     if needs_rehash(user.password_hash):
         user.password_hash = hash_password(data.password)
         db.add(user)
-        await db.commit()
 
     # 4. Generate a new access token and return it to the user
     access_token = create_access_token(

@@ -65,7 +65,7 @@ async def create_role(
         payload={"name": new_role.name, "description": new_role.description},
     )
 
-    await db.commit()
+    await db.flush()
     await db.refresh(new_role)
     return new_role
 
@@ -94,8 +94,6 @@ async def delete_role(db: AsyncSession, role_id: str, actor_id: str) -> None:
         entity_id=role.id,
         payload={"name": role.name},
     )
-
-    await db.commit()
 
 
 async def assign_permission(
@@ -149,7 +147,6 @@ async def assign_permission(
         payload={"scope_key": scope_key, "role_name": role.name},
     )
 
-    await db.commit()
     return role_perm
 
 
@@ -188,7 +185,7 @@ async def revoke_permission(
         payload={"scope_key": scope, "role_name": role.name},
     )
 
-    await db.commit()
+    return
 
 
 async def assign_role_to_user(
@@ -221,7 +218,6 @@ async def assign_role_to_user(
     )
 
     await db.flush()  # get user_role ids
-    await db.commit()
     await db.refresh(user_role)
     return user_role
 
@@ -259,7 +255,6 @@ async def revoke_role_from_user(
         payload={"user": user.username, "role": role.name},
     )
 
-    await db.commit()
     return
 
 

@@ -51,10 +51,7 @@ async def jwks():
         n = to_base64url(numbers.n)
         e = to_base64url(numbers.e)
 
-        # 5. Override the key ID with a fixed value (temporary solution)
-        kid = "my-key-id"
-
-        # 6. Construct the JSON Web Key (JWK) with required fields
+        # 5. Construct the JSON Web Key (JWK) with required fields
         jwk = {
             "kty": "RSA",
             "use": "sig",
@@ -64,8 +61,9 @@ async def jwks():
             "e": e,
         }
 
-        # 7. Return the JWKS with the constructed key
+        # 6. Return the JWKS with the constructed key
         return {"keys": [jwk]}
+
     except Exception as e:
         logger.error(f"Failed to retrieve public key: {e}")
         raise HTTPException(
