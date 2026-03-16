@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user
 from app.core.exceptions import UniquenessError
+from app.core.rate_limit import rate_limit_by_ip, rate_limit_by_username
 from app.db.session import get_db
 from app.schemas.auth import (
     LoginRequest,
@@ -32,9 +33,15 @@ COOKIE_SETTINGS = {
 
 
 @router.post(
-    "/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+    "/signup",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
 )
-async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
+async def signup(
+    data: SignupRequest,
+    db: AsyncSession = Depends(get_db),
+    _ip: None = Depends(rate_limit_by_ip),
+):
     """
     Endpoint for user registration. It accepts a SignupRequest, creates a new user,
     and returns the user's information.
@@ -65,7 +72,11 @@ async def signup(data: SignupRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    data: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)
+    data: LoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    _ip: None = Depends(rate_limit_by_ip),
+    _user: None = Depends(rate_limit_by_username),
 ):
     """
     Endpoint for user login. It accepts a LoginRequest, verifies the user's credentials,
@@ -101,6 +112,7 @@ async def refresh(
     response: Response,
     db: AsyncSession = Depends(get_db),
     refresh_token: str = Cookie(...),
+    _ip: None = Depends(rate_limit_by_ip),
 ):
     """
     Endpoint to refresh the access token using a valid refresh token. The new access token
