@@ -72,7 +72,7 @@ async def signup(db: AsyncSession, data: SignupRequest) -> User:
     if result.scalar_one_or_none():
         raise UniquenessError("Username already exists")
 
-    # Check email uniqueness
+    # 2. Check email uniqueness
     if data.email:
         result = await db.execute(select(User).where(User.email == data.email))
         if result.scalar_one_or_none():

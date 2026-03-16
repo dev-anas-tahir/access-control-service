@@ -12,24 +12,33 @@ logger = logging.getLogger(__name__)
 
 
 async def get_or_create_role(db, name: str, description: str) -> Role:
+    # 1. Check if role already exists in the database
     result = await db.execute(select(Role).where(Role.name == name))
     role = result.scalar_one_or_none()
+    
+    # 2. If role doesn't exist, create a new one
     if not role:
         role = Role(name=name, description=description, is_system=True)
         db.add(role)
         await db.flush()
         logger.info(f"✅ Created role: {name}")
     else:
+        # 3. If role exists, log and continue
         logger.info(f"⏭️  Role already exists: {name}")
     return role
 
 
 async def get_or_create_permission(db, resource: str, action: str) -> Permission:
+    # 1. Generate the scope key from resource and action
     scope_key = f"{resource}:{action}"
+    
+    # 2. Check if permission already exists in the database
     result = await db.execute(
         select(Permission).where(Permission.scope_key == scope_key)
     )
     permission = result.scalar_one_or_none()
+    
+    # 3. If permission doesn't exist, create a new one
     if not permission:
         permission = Permission(
             resource=resource,
@@ -40,17 +49,21 @@ async def get_or_create_permission(db, resource: str, action: str) -> Permission
         await db.flush()
         logger.info(f"✅ Created permission: {scope_key}")
     else:
+        # 4. If permission exists, log and continue
         logger.info(f"⏭️  Permission already exists: {scope_key}")
     return permission
 
 
 async def assign_permission_to_role(db, role: Role, permission: Permission) -> None:
+    # 1. Check if the permission is already assigned to the role
     result = await db.execute(
         select(RolePermission).where(
             RolePermission.role_id == role.id,
             RolePermission.permission_id == permission.id,
         )
     )
+    
+    # 2. If not already assigned, create the association
     if not result.scalar_one_or_none():
         db.add(RolePermission(role_id=role.id, permission_id=permission.id))
         logger.info(f"✅ Assigned {permission.scope_key} → {role.name}")

@@ -1,5 +1,3 @@
-""" """
-
 from datetime import datetime, timezone
 
 from sqlalchemy import delete, select
@@ -27,6 +25,7 @@ async def _write_audit_log(
     entity_id: str,
     payload: dict,
 ) -> None:
+    # 1. Create the audit log entry
     log = AuditLog(
         actor_id=actor_id,
         action=action,
@@ -34,6 +33,8 @@ async def _write_audit_log(
         entity_id=entity_id,
         payload=payload,
     )
+    
+    # 2. Add the log to the session (commit handled by caller)
     db.add(log)
     # no commit here — caller commits
 
@@ -154,6 +155,7 @@ async def assign_permission(
 async def revoke_permission(
     db: AsyncSession, role_id: str, scope: str, actor_id: str
 ) -> None:
+    # 1. Get the role
     result = await db.execute(
         select(Role).where(Role.id == role_id).options(selectinload(Role.permissions))
     )
@@ -175,7 +177,7 @@ async def revoke_permission(
         )
     )
 
-    # 5. Audit log
+    # 4. Audit log
     await _write_audit_log(
         db,
         actor_id=actor_id,

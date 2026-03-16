@@ -37,8 +37,11 @@ def create_access_token(
     is_super_user: bool,
 ) -> str:
     """Create an access token."""
+    # 1. Set current time and expiration time
     now = datetime.now(timezone.utc)
     expire = now + timedelta(minutes=settings.jwt_access_token_expire_minutes)
+    
+    # 2. Build the JWT payload with user information
     payload = {
         "sub": str(user_id),
         "iss": settings.jwt_issuer,
@@ -50,6 +53,8 @@ def create_access_token(
         "permissions": permissions,
         "is_super_user": is_super_user,
     }
+    
+    # 3. Encode the payload with the private key and return the token
     return jwt.encode(payload, key_pair.private_key, algorithm=settings.jwt_algorithm)
 
 
@@ -57,6 +62,7 @@ def verify_access_token(
     token: str,
 ) -> dict:
     """Verify an access token and return the payload."""
+    # 1. Attempt to decode the JWT token using the public key
     try:
         payload = jwt.decode(
             token,
@@ -64,8 +70,11 @@ def verify_access_token(
             algorithms=[settings.jwt_algorithm],
             options={"require": ["sub", "exp", "jti", "iss"]},
         )
+        # 2. Return the decoded payload if successful
         return payload
     except jwt.ExpiredSignatureError:
+        # 3. Handle expired token error
         raise ValueError("Token has expired")
     except jwt.InvalidTokenError as e:
+        # 4. Handle other invalid token errors
         raise ValueError(f"Invalid token: {e}")

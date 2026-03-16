@@ -1,5 +1,4 @@
-# app/core/rate_limit.py
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import HTTPException, Request, status
 
 from app.db.redis import redis_client
 
@@ -17,18 +16,18 @@ async def rate_limit_by_ip(request: Request) -> None:
     if not ip_address:
         return
 
-    # 2. build Redis key
+    # 2. Build Redis key
     endpoint = request.url.path
     redis_key = f"rate_limit:ip:{ip_address}:{endpoint}"
 
     # 3. INCR the counter
     count = await redis_client.incr(redis_key)
 
-    # 4. if count == 1: set TTL (first request in window)
+    # 4. If count == 1: set TTL (first request in window)
     if count == 1:
         await redis_client.expire(redis_key, IP_WINDOW)
 
-    # 5. if count > limit: raise 429
+    # 5. If count > limit: raise 429
     if count > IP_MAX_ATTEMPTS:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
