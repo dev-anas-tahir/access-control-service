@@ -80,15 +80,15 @@ async def login(
 ):
     """
     Endpoint for user login. It accepts a LoginRequest, verifies the user's credentials,
-    and returns an access token. The refresh token is set as an HTTP-only cookie.
-    Args:
-        data (LoginRequest): The login request data.
-        response (Response): The FastAPI Response object to set cookies.
-        db (AsyncSession): The database session.
-    Returns:
-        TokenResponse: The response containing the access token.
-    Raises:
-        HTTPException: If the credentials are invalid (401 Unauthorized)
+    and returns an access token. The refresh token is set as an HTTP-only cookie.\n
+    Args:\n
+        data (LoginRequest): The login request data.\n
+        response (Response): The FastAPI Response object to set cookies.\n
+        db (AsyncSession): The database session.n\n
+    Returns:\n
+        TokenResponse: The response containing the access token.\n
+    Raises:\n
+        HTTPException: If the credentials are invalid (401 Unauthorized)\n
         or if there is an internal server error (500).
     """
     try:

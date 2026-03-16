@@ -40,7 +40,7 @@ def create_access_token(
     # 1. Set current time and expiration time
     now = datetime.now(timezone.utc)
     expire = now + timedelta(minutes=settings.jwt_access_token_expire_minutes)
-    
+
     # 2. Build the JWT payload with user information
     payload = {
         "sub": str(user_id),
@@ -53,7 +53,7 @@ def create_access_token(
         "permissions": permissions,
         "is_super_user": is_super_user,
     }
-    
+
     # 3. Encode the payload with the private key and return the token
     return jwt.encode(payload, key_pair.private_key, algorithm=settings.jwt_algorithm)
 

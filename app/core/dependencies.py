@@ -2,15 +2,17 @@
 authorization checks."""
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.security import verify_access_token
 from app.db.redis import redis_client
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+http_bearer = HTTPBearer()
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
+) -> dict:
     """
     Dependency to get the current user from the access token. It verifies the token
     and checks if it has been revoked.
@@ -21,6 +23,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     Raises:
         HTTPException: If the token is invalid or has been revoked.
     """
+    token = credentials.credentials
     try:
         payload = verify_access_token(token)
     except ValueError as e:

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +24,7 @@ async def _write_audit_log(
     action: str,
     entity_type: str,
     entity_id: str,
-    payload: dict,
+    payload: dict[str, Any],
 ) -> None:
     # 1. Create the audit log entry
     log = AuditLog(
@@ -33,7 +34,7 @@ async def _write_audit_log(
         entity_id=entity_id,
         payload=payload,
     )
-    
+
     # 2. Add the log to the session (commit handled by caller)
     db.add(log)
     # no commit here — caller commits

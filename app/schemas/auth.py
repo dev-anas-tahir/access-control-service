@@ -37,7 +37,7 @@ class SignupRequest(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def validate_password(cls, v):
+    def validate_password(cls, v: str) -> str:
         """
         Validate password strength.
 
@@ -137,18 +137,15 @@ class MeResponse(BaseModel):
     Attributes:
         id: The user's unique identifier.
         username: The user's username.
-        email: The user's email address (optional).
         roles: List of role names assigned to the user.
         permissions: List of permission scope keys available to the user.
         is_super_user: Flag indicating if the user has super user privileges.
-        created_at: The timestamp when the user was created.
     """
 
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     username: str
-    email: str | None = None
     roles: list[str]
     permissions: list[str]
     is_super_user: bool

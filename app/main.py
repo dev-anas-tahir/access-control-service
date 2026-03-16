@@ -20,7 +20,8 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
-from google.api_core.exceptions import NotFound
+
+# from google.api_core.exceptions import NotFound
 from sqlalchemy import text
 
 from app.api.v1 import admin, auth, jwks
@@ -73,7 +74,7 @@ async def lifespan(app: FastAPI):
         logger.info("✅ RSA keys loaded")
     except FileNotFoundError as e:
         raise RuntimeError(
-            f"❌ RSA key file not found: {e}. Did you run openssl keygen?"
+            f"❌ RSA key file not found in the dir ./keys: {e}. Did you run openssl genrsa keys/[key_name] 2048?"  # noqa: E501
         )
 
     # 2. connect to database

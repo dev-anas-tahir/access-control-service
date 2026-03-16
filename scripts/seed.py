@@ -15,7 +15,7 @@ async def get_or_create_role(db, name: str, description: str) -> Role:
     # 1. Check if role already exists in the database
     result = await db.execute(select(Role).where(Role.name == name))
     role = result.scalar_one_or_none()
-    
+
     # 2. If role doesn't exist, create a new one
     if not role:
         role = Role(name=name, description=description, is_system=True)
@@ -31,13 +31,13 @@ async def get_or_create_role(db, name: str, description: str) -> Role:
 async def get_or_create_permission(db, resource: str, action: str) -> Permission:
     # 1. Generate the scope key from resource and action
     scope_key = f"{resource}:{action}"
-    
+
     # 2. Check if permission already exists in the database
     result = await db.execute(
         select(Permission).where(Permission.scope_key == scope_key)
     )
     permission = result.scalar_one_or_none()
-    
+
     # 3. If permission doesn't exist, create a new one
     if not permission:
         permission = Permission(
@@ -62,7 +62,7 @@ async def assign_permission_to_role(db, role: Role, permission: Permission) -> N
             RolePermission.permission_id == permission.id,
         )
     )
-    
+
     # 2. If not already assigned, create the association
     if not result.scalar_one_or_none():
         db.add(RolePermission(role_id=role.id, permission_id=permission.id))
