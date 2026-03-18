@@ -106,7 +106,7 @@ async def signup(db: AsyncSession, data: SignupRequest) -> User:
     return new_user
 
 
-async def login(db: AsyncSession, data: LoginRequest) -> str:
+async def login(db: AsyncSession, data: LoginRequest) -> tuple:
     """
     Authenticate a user by verifying their username and password.
 
@@ -177,7 +177,7 @@ async def login(db: AsyncSession, data: LoginRequest) -> str:
     return access_token, refresh_token
 
 
-async def refresh_token(db: AsyncSession, refresh_token: str) -> str:
+async def refresh_token(db: AsyncSession, refresh_token: str) -> tuple:
     """
     Refresh an access token using a valid refresh token.
 

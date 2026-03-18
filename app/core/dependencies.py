@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.security import verify_access_token
+from app.core.types import TokenPayload
 from app.db.redis import redis_client
 
 http_bearer = HTTPBearer()
@@ -12,14 +13,14 @@ http_bearer = HTTPBearer()
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
-) -> dict:
+) -> TokenPayload:
     """
     Dependency to get the current user from the access token. It verifies the token
     and checks if it has been revoked.
     Args:
         token (str): The access token extracted from the Authorization header.
     Returns:
-        dict: The payload of the access token if valid and not revoked.
+        TokenPayload: The payload of the access token if valid and not revoked.
     Raises:
         HTTPException: If the token is invalid or has been revoked.
     """
@@ -44,7 +45,7 @@ async def get_current_user(
     return payload
 
 
-async def require_super_user(payload: dict = Depends(get_current_user)) -> dict:
+async def require_super_user(payload: TokenPayload = Depends(get_current_user)) -> TokenPayload:
     """
     Dependency to check if the current user has super user privileges. It depends on
     the get_current_user dependency to first verify the user's identity.
@@ -52,7 +53,7 @@ async def require_super_user(payload: dict = Depends(get_current_user)) -> dict:
         payload (dict): The payload of the access token, provided by the
         get_current_user dependency.
     Returns:
-        dict: The payload of the access token if the user has super user privileges.
+        TokenPayload: The payload of the access token if the user has super user privileges.
     Raises:
         HTTPException: If the user does not have super user privileges.
     """

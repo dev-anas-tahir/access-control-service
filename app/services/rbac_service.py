@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -70,7 +71,7 @@ async def create_role(
     return new_role
 
 
-async def delete_role(db: AsyncSession, role_id: str, actor_id: str) -> None:
+async def delete_role(db: AsyncSession, role_id: UUID, actor_id: UUID) -> None:
     # 1. Fetch the role
     result = await db.execute(select(Role).where(Role.id == role_id))
     role = result.scalar_one_or_none()
@@ -98,9 +99,9 @@ async def delete_role(db: AsyncSession, role_id: str, actor_id: str) -> None:
 
 async def assign_permission(
     db: AsyncSession,
-    role_id: str,
+    role_id: UUID,
     data: PermissionCreate,
-    actor_id: str,
+    actor_id: UUID,
 ) -> RolePermission:
     result = await db.execute(
         select(Role).where(Role.id == role_id).options(selectinload(Role.permissions))
@@ -151,7 +152,7 @@ async def assign_permission(
 
 
 async def revoke_permission(
-    db: AsyncSession, role_id: str, scope: str, actor_id: str
+    db: AsyncSession, role_id: UUID, scope: str, actor_id: UUID
 ) -> None:
     # 1. Get the role
     result = await db.execute(
@@ -189,7 +190,7 @@ async def revoke_permission(
 
 
 async def assign_role_to_user(
-    db: AsyncSession, user_id: str, role_id: str, actor_id: str
+    db: AsyncSession, user_id: UUID, role_id: UUID, actor_id: UUID
 ) -> UserRole:
     # 1. Get the user
     result = await db.execute(select(User).where(User.id == user_id))
@@ -223,7 +224,7 @@ async def assign_role_to_user(
 
 
 async def revoke_role_from_user(
-    db: AsyncSession, user_id: str, role_id: str, actor_id: str
+    db: AsyncSession, user_id: UUID, role_id: UUID, actor_id: UUID
 ) -> None:
     # 1. Get the user
     result = await db.execute(select(User).where(User.id == user_id))

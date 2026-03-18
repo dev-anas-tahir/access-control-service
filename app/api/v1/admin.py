@@ -8,6 +8,7 @@ from app.core.exceptions import (
     SystemRoleError,
     UniquenessError,
 )
+from app.core.types import TokenPayload
 from app.db.session import get_db
 from app.schemas.role import (
     AssignRoleRequest,
@@ -24,7 +25,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @router.post("/roles", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
 async def create_role(
     data: RoleCreate,
-    payload: dict = Depends(require_super_user),
+    payload: TokenPayload = Depends(require_super_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -46,7 +47,7 @@ async def create_role(
 @router.delete("/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_role(
     role_id: str,
-    payload: dict = Depends(require_super_user),
+    payload: TokenPayload = Depends(require_super_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -74,7 +75,7 @@ async def delete_role(
 async def assign_permission(
     role_id: str,
     data: PermissionCreate,
-    payload: dict = Depends(require_super_user),
+    payload: TokenPayload = Depends(require_super_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -104,7 +105,7 @@ async def assign_permission(
 async def revoke_permission(
     role_id: str,
     scope: str,
-    payload: dict = Depends(require_super_user),
+    payload: TokenPayload = Depends(require_super_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -127,7 +128,7 @@ async def revoke_permission(
 async def assign_role_to_user(
     user_id: str,
     data: AssignRoleRequest,
-    payload: dict = Depends(require_super_user),
+    payload: TokenPayload = Depends(require_super_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -152,7 +153,7 @@ async def assign_role_to_user(
 async def revoke_role_from_user(
     user_id: str,
     role_id: str,
-    payload: dict = Depends(require_super_user),
+    payload: TokenPayload = Depends(require_super_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -174,7 +175,7 @@ async def revoke_role_from_user(
 async def get_audit_logs(
     page: int = 1,
     page_size: int = 20,
-    payload: dict = Depends(require_super_user),
+    payload: TokenPayload = Depends(require_super_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:

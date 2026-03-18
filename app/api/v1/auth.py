@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_current_user
 from app.core.exceptions import UniquenessError
 from app.core.rate_limit import rate_limit_by_ip, rate_limit_by_username
+from app.core.types import TokenPayload
 from app.db.session import get_db
 from app.schemas.auth import (
     LoginRequest,
@@ -101,9 +102,10 @@ async def login(
             detail=str(e),
         )
     except Exception as e:
+        # Log the exception internally (logging should be configured in core/logger.py)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
+            detail="Internal server error",
         )
 
 
@@ -139,16 +141,17 @@ async def refresh(
             detail=str(e),
         )
     except Exception as e:
+        # Log the exception internally (logging should be configured in core/logger.py)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
+            detail="Internal server error",
         )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     response: Response,
-    payload: dict = Depends(get_current_user),
+    payload: TokenPayload = Depends(get_current_user),
     refresh_token: str = Cookie(...),
 ):
     """
@@ -167,17 +170,19 @@ async def logout(
     try:
         await auth_service.logout(refresh_token, payload)
         response.delete_cookie(key="refresh_token")
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
+        return None
     except Exception as e:
+        # Log the exception internally (logging should be configured in core/logger.py)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
+            detail="Internal server error",
         )
 
 
 @router.get("/me", response_model=MeResponse)
-async def me(payload: dict = Depends(get_current_user)):
-    """Endpoint to retrieve the current user's information based on the access token.
+async def me(payload: TokenPayload = Depends(get_current_user)):
+    """
+    Endpoint to retrieve the current user's information based on the access token.
     It depends on the get_current_user dependency to verify the token and extract the user's information from the payload.
     Args:
         payload (dict): The payload of the access token, provided by the get_current_user dependency.

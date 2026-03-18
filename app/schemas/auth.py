@@ -31,6 +31,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 class SignupRequest(BaseModel):
     """Request schema for user signup."""
 
+    model_config = ConfigDict(str_strip_whitespace=True)
     username: str = Field(min_length=3, max_length=50)
     password: str
     email: EmailStr | None = None
