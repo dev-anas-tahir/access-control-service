@@ -9,12 +9,9 @@ Mock all external dependencies."
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 from app.services import auth_service
 
 
-@pytest.mark.asyncio
 async def test_logout_deletes_refresh_token():
     """Test that logout deletes the refresh token from Redis."""
     # Mock Redis client methods
@@ -47,7 +44,6 @@ async def test_logout_deletes_refresh_token():
         assert call_args[0][2] == "1"  # The value stored
 
 
-@pytest.mark.asyncio
 async def test_logout_revokes_jti_with_correct_ttl():
     """Test that logout revokes the access token JTI with correct TTL."""
     mock_delete = AsyncMock()
@@ -75,7 +71,6 @@ async def test_logout_revokes_jti_with_correct_ttl():
         assert 3595 <= ttl <= 3600
 
 
-@pytest.mark.asyncio
 async def test_logout_handles_expired_token_gracefully():
     """Test that logout handles already-expired tokens without errors."""
     mock_delete = AsyncMock()

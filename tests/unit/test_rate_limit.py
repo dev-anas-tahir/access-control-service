@@ -5,7 +5,6 @@ from fastapi import HTTPException
 from starlette.requests import Request
 
 
-@pytest.mark.asyncio
 async def test_ip_rate_limit_exceeded():
     from app.core.rate_limit import IP_MAX_ATTEMPTS, rate_limit_by_ip
 
@@ -37,7 +36,6 @@ async def test_ip_rate_limit_exceeded():
         mock_incr.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_ip_rate_limit_with_no_client():
     from app.core.rate_limit import IP_MAX_ATTEMPTS, rate_limit_by_ip
 
@@ -62,7 +60,6 @@ async def test_ip_rate_limit_with_no_client():
         mock_incr.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_username_rate_limit_exceeded():
     from app.core.rate_limit import USERNAME_MAX_ATTEMPTS, rate_limit_by_username
 
@@ -72,7 +69,7 @@ async def test_username_rate_limit_exceeded():
 
     # Create a mock Request with JSON body containing username
     mock_request = AsyncMock(spec=Request)
-    mock_request.json.return_value = {"username": "testuser"}
+    mock_request.body = AsyncMock(return_value=b'{"username": "testuser"}')
     mock_request.url.path = "/login"
 
     # Patch the redis_client to use our mocks
@@ -92,7 +89,6 @@ async def test_username_rate_limit_exceeded():
         mock_incr.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_username_rate_limit_not_exceeded():
     from app.core.rate_limit import USERNAME_MAX_ATTEMPTS, rate_limit_by_username
 
@@ -102,7 +98,7 @@ async def test_username_rate_limit_not_exceeded():
 
     # Create a mock Request with JSON body containing username
     mock_request = AsyncMock(spec=Request)
-    mock_request.json.return_value = {"username": "testuser"}
+    mock_request.body = AsyncMock(return_value=b'{"username": "testuser"}')
     mock_request.url.path = "/login"
 
     # Patch the redis_client to use our mocks
@@ -117,7 +113,6 @@ async def test_username_rate_limit_not_exceeded():
         mock_incr.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_ip_rate_limit_with_empty_host():
     from app.core.rate_limit import rate_limit_by_ip
 
@@ -138,7 +133,6 @@ async def test_ip_rate_limit_with_empty_host():
         mock_redis.expire.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_ip_rate_limit_not_exceeded():
     from app.core.rate_limit import IP_MAX_ATTEMPTS, rate_limit_by_ip
 

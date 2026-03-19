@@ -1,10 +1,8 @@
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from httpx import AsyncClient, Response
 
 
-@pytest.mark.asyncio
 async def test_signup_success(client: AsyncClient, viewer_role):
     # 1. Set the payload
     payload = {
@@ -43,7 +41,6 @@ async def test_signup_success(client: AsyncClient, viewer_role):
         assert key not in data, f"Sensitive field '{key}' leaked in response"
 
 
-@pytest.mark.asyncio
 async def test_signup_duplicate_username(client, viewer_role):
     # 1. Set the payload
     payload = {
@@ -60,7 +57,6 @@ async def test_signup_duplicate_username(client, viewer_role):
     assert response.status_code == 409
 
 
-@pytest.mark.asyncio
 async def test_login_success(client, viewer_role):
     # 1. Set the payload for signup
     payload = {
@@ -109,7 +105,6 @@ async def test_login_success(client, viewer_role):
         assert response.cookies.get("refresh_token") is not None
 
 
-@pytest.mark.asyncio
 async def test_login_wrong_password(client, viewer_role):
     # 1. Signup
     await client.post(

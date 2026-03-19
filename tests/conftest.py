@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
@@ -92,7 +93,7 @@ async def viewer_role(db):
 
 
 # ──────────── Override get_db dependency ──────────── #
-@pytest.fixture
+@pytest_asyncio.fixture
 def override_get_db(db):
     # 1. Override FastAPI's get_db dependency
     async def _get_db():
@@ -106,6 +107,73 @@ def override_get_db(db):
     app.dependency_overrides.clear()
 
 
+# ──────────── Mock Redis ──────────── #
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def mock_redis():
+    """Mock Redis client to avoid actual Redis connections during tests."""
+    from app.core import dependencies as dependencies_module
+    from app.core import rate_limit as rate_limit_module
+    from app.db import redis as redis_module
+    from app.main import app as main_app
+    from app.services import auth_service as auth_service_module
+    
+    # Create a mock Redis client
+    mock_client = AsyncMock()
+    mock_client.ping = AsyncMock(return_value=True)
+    mock_client.get = AsyncMock(return_value=None)
+    mock_client.setex = AsyncMock(return_value=True)
+    mock_client.incr = AsyncMock(return_value=1)
+    mock_client.expire = AsyncMock(return_value=True)
+    mock_client.delete = AsyncMock(return_value=1)
+    mock_client.lpush = AsyncMock(return_value=1)
+    mock_client.lrange = AsyncMock(return_value=[])
+    mock_client.zadd = AsyncMock(return_value=1)
+    mock_client.zrange = AsyncMock(return_value=[])
+    mock_client.zrem = AsyncMock(return_value=1)
+    
+    # Patch the redis_client in all modules that import it
+    patches = [
+        patch.object(redis_module, 'redis_client', mock_client),
+        patch.object(rate_limit_module, 'redis_client', mock_client),
+        patch.object(auth_service_module, 'redis_client', mock_client),
+        patch.object(dependencies_module, 'redis_client', mock_client),
+        # Also patch in main app module if it uses redis_client directly
+        patch.object(main_app, 'redis_client', mock_client, create=True),
+    ]
+    
+    # Start all patches
+    for p in patches:
+        p.start()
+    
+    yield mock_client
+    
+    # Stop all patches
+    for p in patches:
+        p.stop()
+
+
+# ──────────── Override Lifespan ──────────── #
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def override_lifespan():
+    """Override the app's lifespan to skip external service connections during tests."""
+    
+    # Store original lifespan
+    original_lifespan = app.router.lifespan_context
+    
+    # Create a no-op lifespan that just yields
+    @asynccontextmanager
+    async def mock_lifespan(app):
+        yield
+    
+    # Apply the override
+    app.router.lifespan_context = mock_lifespan
+    
+    yield
+    
+    # Restore original lifespan after all tests (though session scope means this runs at end)  # noqa: E501
+    app.router.lifespan_context = original_lifespan
+
+
 # ──────────── HTTP client ──────────── #
 @pytest_asyncio.fixture
 async def client(override_get_db):
@@ -117,11 +185,3 @@ async def client(override_get_db):
     ) as ac:
         yield ac
 
-
-# ──────────── Overrides Lifespan ──────────── #
-@asynccontextmanager
-async def mock_lifespan(app):
-    yield
-
-
-app.router.lifespan_context = mock_lifespan
