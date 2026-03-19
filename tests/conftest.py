@@ -93,7 +93,7 @@ async def viewer_role(db):
 
 
 # ──────────── Override get_db dependency ──────────── #
-@pytest_asyncio.fixture
+@pytest.fixture
 def override_get_db(db):
     # 1. Override FastAPI's get_db dependency
     async def _get_db():
@@ -114,7 +114,6 @@ async def mock_redis():
     from app.core import dependencies as dependencies_module
     from app.core import rate_limit as rate_limit_module
     from app.db import redis as redis_module
-    from app.main import app as main_app
     from app.services import auth_service as auth_service_module
 
     # Create a mock Redis client
@@ -137,8 +136,6 @@ async def mock_redis():
         patch.object(rate_limit_module, "redis_client", mock_client),
         patch.object(auth_service_module, "redis_client", mock_client),
         patch.object(dependencies_module, "redis_client", mock_client),
-        # Also patch in main app module if it uses redis_client directly
-        patch.object(main_app, "redis_client", mock_client, create=True),
     ]
 
     # Start all patches

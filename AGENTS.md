@@ -31,23 +31,32 @@ It is part of a larger platform migrated from Django and deployed on GCP.
 ```
 app/
 ├── core/
-│   ├── config.py          # Settings via pydantic-settings
 │   ├── security.py        # RSA key loading, JWT encode/decode, bcrypt hashing
-│   └── dependencies.py    # FastAPI dependency injection (DB, Redis, current user)
+│   ├── dependencies.py    # FastAPI dependency injection (DB, Redis, current user)
+│   ├── keys.py            # RSAKeyPair singleton object
+│   ├── rate_limit.py      # Rate limiting functons per ip and username
+│   └── types.py           # Custom types for the app i.e TokenPayload
 ├── db/
-│   ├── base.py            # SQLAlchemy async engine + session factory
-│   ├── mixins.py          # TimestampMixin, SoftDeleteMixin
-│   └── models/            # SQLAlchemy ORM models
+│   ├── pubsub.py          # GCP Pub/Sub publisher setup
+│   ├── redis.py           # Redis setup
+│   └── session.py         # DB connection and session
 ├── schemas/               # Pydantic v2 request/response schemas
+    ├── auth.py            # Login , SignUp request and response schemas
+│   └── role.py            # Role/permission request and response schemas
 ├── services/
 │   ├── auth_service.py    # Login, token issuance, refresh, lazy bcrypt migration
 │   └── rbac_service.py    # Role/permission assignment and checks
-├── routes/
+├── api/v1/
 │   ├── auth.py            # /auth/* endpoints
 │   ├── jwks.py            # /.well-known/jwks.json
 │   └── admin.py           # /admin/* endpoints (roles, permissions, user management)
-├── events/
-│   └── pubsub.py          # GCP Pub/Sub publisher setup
+├── models/
+│   ├── association.py
+│   ├── audit_log.py
+│   └── base.py 
+│   └── role.py
+│   └── user.py
+├── config.py              # Settings via pydantic-settings
 └── main.py                # App factory, lifespan, router registration
 
 tests/
@@ -139,12 +148,14 @@ PUBSUB_TOPIC_ACTIVITY=...
 - Use `default` only for Python-side defaults (e.g. `default=uuid.uuid4`).
 - All models inherit `TimestampMixin` and `SoftDeleteMixin` where appropriate.
 - Never use `session.commit()` inside service functions — commit is the caller's responsibility unless explicitly noted.
+- For docs go to `https://docs.sqlalchemy.org/en/20/`
 
 ### Pydantic v2
 - Use `model_config = ConfigDict(...)` instead of inner `class Config`.
 - Use `model_validator` and `field_validator` with `@classmethod`.
 - Separate schemas for input and output: e.g. `UserCreate`, `UserRead`, never reuse the same model.
 - Never expose password hashes or internal fields in response schemas.
+- For docs go to `https://docs.pydantic.dev/2.12/`
 
 ### Authentication & Security
 - Tokens are RS256-signed JWTs. Use `PyJWT` with the `cryptography` backend. Do NOT use `python-jose`.
@@ -187,7 +198,7 @@ PUBSUB_TOPIC_ACTIVITY=...
 
 ### Fixtures (`tests/conftest.py`)
 - Provide: async DB session, overridden `get_db` dependency, `AsyncClient`, Redis mock.
-- Use `pytest-asyncio` with `asyncio_mode = "auto"` in `pytest.ini` or `pyproject.toml`.
+- Use `pytest-asyncio` with `asyncio_mode = "auto"` in `pyproject.toml`.
 
 <!-- TODO: If you have a specific test database name or a docker-compose setup for tests, document it here. -->
 
@@ -234,3 +245,4 @@ These are recurring issues in this codebase — always check for them:
 4. **Mutable default arguments** in function signatures.
 5. **Exposing password hashes** in Pydantic response schemas.
 6. **Not checking JTI revocation** in the token validation dependency.
+7. **Always follow the documentation** examples with proper reasoning.
