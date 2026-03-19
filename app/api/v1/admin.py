@@ -15,7 +15,9 @@ from app.schemas.role import (
     AuditLogResponse,
     PermissionCreate,
     RoleCreate,
+    RolePermissionResponse,
     RoleResponse,
+    UserRoleResponse,
 )
 from app.services import rbac_service
 
@@ -71,7 +73,11 @@ async def delete_role(
         )
 
 
-@router.post("/roles/{role_id}/permissions", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/roles/{role_id}/permissions",
+    response_model=RolePermissionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def assign_permission(
     role_id: str,
     data: PermissionCreate,
@@ -80,8 +86,8 @@ async def assign_permission(
 ):
     try:
         actor_id = payload.get("sub")
-        await rbac_service.assign_permission(db, role_id, data, actor_id)
-        return
+        result = await rbac_service.assign_permission(db, role_id, data, actor_id)
+        return RolePermissionResponse.model_validate(result)
     except NotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -124,7 +130,11 @@ async def revoke_permission(
         )
 
 
-@router.post("/users/{user_id}/roles", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/users/{user_id}/roles",
+    response_model=UserRoleResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def assign_role_to_user(
     user_id: str,
     data: AssignRoleRequest,
@@ -133,8 +143,10 @@ async def assign_role_to_user(
 ):
     try:
         actor_id = payload.get("sub")
-        await rbac_service.assign_role_to_user(db, user_id, data.role_id, actor_id)
-        return
+        result = await rbac_service.assign_role_to_user(
+            db, user_id, data.role_id, actor_id
+        )
+        return UserRoleResponse.model_validate(result)
     except NotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -55,6 +55,7 @@ class AuditLogResponse(BaseModel):
     """Response schema for audit log entries."""
 
     model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     actor_id: UUID | None
     action: str
@@ -62,3 +63,25 @@ class AuditLogResponse(BaseModel):
     entity_type: str
     payload: dict | None
     created_at: datetime
+
+
+class RolePermissionResponse(BaseModel):
+    """Response schema for role-permission assignment."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    role_id: UUID
+    permission_id: UUID
+    granted_by: UUID | None
+    granted_at: datetime
+
+
+class UserRoleResponse(BaseModel):
+    """Response schema for user-role assignment."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: UUID
+    role_id: UUID
+    assigned_by: UUID | None
+    assigned_at: datetime

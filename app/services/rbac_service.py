@@ -218,8 +218,6 @@ async def assign_role_to_user(
         payload={"user": user.username, "role": role.name},
     )
 
-    await db.flush()  # get user_role ids
-    await db.refresh(user_role)
     return user_role
 
 
