@@ -7,6 +7,7 @@ import jwt
 from passlib.context import CryptContext
 
 from app.config import settings
+from app.core.exceptions import InvalidTokenError, TokenExpiredError
 from app.core.keys import key_pair
 
 pwd_context = CryptContext(
@@ -74,7 +75,7 @@ def verify_access_token(
         return payload
     except jwt.ExpiredSignatureError:
         # 3. Handle expired token error
-        raise ValueError("Token has expired")
+        raise TokenExpiredError("Token has expired")
     except jwt.InvalidTokenError as e:
         # 4. Handle other invalid token errors
-        raise ValueError(f"Invalid token: {e}")
+        raise InvalidTokenError(f"Invalid token: {e}")

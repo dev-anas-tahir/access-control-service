@@ -1,6 +1,6 @@
 """
 Custom exceptions for the access control service. These exceptions are used to handle
-specific error cases in the application, such as uniqueness violations during user
+-specific error cases in the application, such as uniqueness violations during user
 signup. By defining custom exceptions, we can provide more meaningful error messages
 and handle specific error scenarios in a more granular way.
 """
@@ -26,5 +26,17 @@ class SystemRoleError(Exception):
 
 class AlreadyAssignedError(Exception):
     """Raised when a role or permission is already assigned."""
+
+    pass
+
+
+class TokenExpiredError(Exception):
+    """Raised when a JWT token has expired."""
+
+    pass
+
+
+class InvalidTokenError(Exception):
+    """Raised when a JWT token is invalid or malformed."""
 
     pass
