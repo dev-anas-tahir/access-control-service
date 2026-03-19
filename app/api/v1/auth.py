@@ -8,6 +8,7 @@ request and response models for each endpoint.
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.dependencies import get_current_user
 from app.core.exceptions import UniquenessError
 from app.core.rate_limit import rate_limit_by_ip, rate_limit_by_username
@@ -27,7 +28,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 COOKIE_SETTINGS = {
     "key": "refresh_token",
     "httponly": True,
-    "secure": True,
+    "secure": settings.app_env != "development",
     "samesite": "lax",
     "max_age": 7 * 24 * 3600,
 }
