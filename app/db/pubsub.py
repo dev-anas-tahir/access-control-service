@@ -6,15 +6,17 @@ from app.config import settings
 Create a Google Cloud Pub/Sub publisher client instance using the project ID from the
 settings. This client will be used to publish messages to the specified Pub/Sub topic
 for event-driven communication between services. The publisher client will be initialized
-when the application starts and can be used throughout the application lifecycle
-"""
-pubsub_client: PublisherClient = PublisherClient()
+lazily on first use, avoiding credential lookup at import time.
+"""  # noqa: E501
 
-"""
-Build the fully qualified topic path using the project ID and topic ID from settings.
-This path is required when publishing messages to the Pub/Sub topic, ensuring that
-the messages are sent to the correct topic within the specified GCP project.
-"""
-topic_path: str = pubsub_client.topic_path(
-    settings.gcp_project_id, settings.pubsub_topic_id
-)
+def get_pubsub_client() -> PublisherClient:
+    """Lazily initialize and return the Pub/Sub publisher client."""
+    if not hasattr(get_pubsub_client, "_client"):
+        get_pubsub_client._client = PublisherClient()
+    return get_pubsub_client._client
+
+def get_topic_path() -> str:
+    """Lazily compute and return the fully qualified Pub/Sub topic path."""
+    return get_pubsub_client().topic_path(
+        settings.gcp_project_id, settings.pubsub_topic_id
+    )
