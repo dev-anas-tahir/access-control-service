@@ -1,3 +1,5 @@
+import json
+
 from fastapi import HTTPException, Request, status
 
 from app.db.redis import redis_client
@@ -37,9 +39,10 @@ async def rate_limit_by_ip(request: Request) -> None:
 
 
 async def rate_limit_by_username(request: Request) -> None:
-    # 1. Parse username from request body
+    # 1. Parse username from request body without consuming stream
     try:
-        body = await request.json()
+        body_bytes = await request.body()
+        body = json.loads(body_bytes)
     except Exception:
         return
     username = body.get("username")
