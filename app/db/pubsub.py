@@ -9,11 +9,13 @@ for event-driven communication between services. The publisher client will be in
 lazily on first use, avoiding credential lookup at import time.
 """  # noqa: E501
 
+
 def get_pubsub_client() -> PublisherClient:
     """Lazily initialize and return the Pub/Sub publisher client."""
     if not hasattr(get_pubsub_client, "_client"):
         get_pubsub_client._client = PublisherClient()
     return get_pubsub_client._client
+
 
 def get_topic_path() -> str:
     """Lazily compute and return the fully qualified Pub/Sub topic path."""

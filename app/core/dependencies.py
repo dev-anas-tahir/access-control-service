@@ -45,7 +45,9 @@ async def get_current_user(
     return payload
 
 
-async def require_super_user(payload: TokenPayload = Depends(get_current_user)) -> TokenPayload:
+async def require_super_user(
+    payload: TokenPayload = Depends(get_current_user),
+) -> TokenPayload:
     """
     Dependency to check if the current user has super user privileges. It depends on
     the get_current_user dependency to first verify the user's identity.
