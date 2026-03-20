@@ -33,29 +33,34 @@ async def admin_user(db):
 
 @pytest.fixture
 async def admin_token(admin_user, mock_jwt):
-    """Generate an access token for the admin user."""
-    from app.core.types import TokenPayload
+    """Generate a real JWT access token for the admin user using test keys."""
+    from datetime import datetime, timedelta, timezone
+    from uuid import uuid4
 
-    # Create a token string that we'll use as the key
-    token_str = f"admin_token_{admin_user.id}"
+    import jwt
 
-    # Prepare the payload that should be returned when this token is decoded
-    payload: TokenPayload = {
+    from app.config import settings
+
+    # Build payload with proper timestamps
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=settings.jwt_access_token_expire_minutes)
+
+    payload = {
         "sub": str(admin_user.id),
-        "iss": "access-control-service",
-        "iat": 9999999999,
-        "exp": 9999999999,
-        "jti": "test-jti",
+        "iss": settings.jwt_issuer,
+        "iat": now,
+        "exp": expire,
+        "jti": str(uuid4()),
         "username": admin_user.username,
         "roles": ["admin"],
         "permissions": ["*"],
         "is_super_user": True,
     }
 
-    # Register this token and its payload in the global mock
-    mock_jwt[token_str] = payload
+    # Use the mock_jwt's private key to sign the token (real JWT encoding)
+    token = jwt.encode(payload, mock_jwt.private_key, algorithm=settings.jwt_algorithm)
 
-    return token_str
+    return token
 
 
 @pytest.fixture
@@ -565,29 +570,30 @@ async def test_get_audit_logs_pagination(client: AsyncClient, admin_token, db):
 
 async def test_admin_routes_require_super_user(client: AsyncClient, mock_jwt):
     """Test that admin endpoints require super user privileges."""
-    # Create a regular token (not super user)
+    import jwt
+    from datetime import datetime, timedelta, timezone
     from uuid import uuid4
 
-    from app.core.types import TokenPayload
+    from app.config import settings
 
-    # Create a token string that we'll use as the key
-    regular_token = f"regular_token_{uuid4()}"
+    # Build payload for a regular user (not super user)
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=settings.jwt_access_token_expire_minutes)
 
-    # Prepare the payload that should be returned when this token is decoded
-    payload: TokenPayload = {
+    payload = {
         "sub": str(uuid4()),  # Random user ID
-        "iss": "access-control-service",
-        "iat": 9999999999,
-        "exp": 9999999999,
-        "jti": "test-jti",
+        "iss": settings.jwt_issuer,
+        "iat": now,
+        "exp": expire,
+        "jti": str(uuid4()),
         "username": "regularuser",
         "roles": ["viewer"],
         "permissions": ["users:read"],
         "is_super_user": False,  # Not a super user
     }
 
-    # Register this token and its payload in the global mock
-    mock_jwt[regular_token] = payload
+    # Generate a real JWT token using the test private key
+    regular_token = jwt.encode(payload, mock_jwt.private_key, algorithm=settings.jwt_algorithm)
 
     # Try to access admin endpoint
     response: Response = await client.post(

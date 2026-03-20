@@ -67,42 +67,30 @@ async def test_login_success(client, viewer_role):
     # 2. Call the signup api endpoint
     await client.post("/api/v1/auth/signup", json=payload)
 
-    with (
-        patch("app.services.auth_service.redis_client") as mock_redis,
-        patch("app.core.security.key_pair") as mock_key_pair,
-        patch("app.core.security.jwt.encode", return_value="dummy_access_token"),
-    ):
-        mock_redis.setex = AsyncMock()
-        # Mock the key pair to return dummy keys
-        mock_key_pair.private_key = "dummy_private_key"
-        mock_key_pair.public_key = "dummy_public_key"
+    # 3. Call the login api endpoint (uses real JWT encoding with test keys)
+    response: Response = await client.post("/api/v1/auth/login", json=payload)
 
-        # 3. Call the login api endpoint
-        response: Response = await client.post("/api/v1/auth/login", json=payload)
+    # 4. Assert the status code 200
+    assert response.status_code == 200
 
-        print("Response Text", response.text)
+    # 5. Grab the data from the response object
+    data = response.json()
 
-        # 3. Assert the status code 200
-        assert response.status_code == 200
+    # 6. Look access_token is present in the data
+    expected_keys = {
+        "access_token",
+    }
+    assert set(data.keys()) >= expected_keys, (
+        f"Missing keys: {expected_keys - set(data.keys())}"
+    )
 
-        # 3. Grab the data from the response object
-        data = response.json()
+    # 7. Sensitive keys are not present in the response
+    forbidden_keys = {"password", "password_hash", "hashed_password"}
+    for key in forbidden_keys:
+        assert key not in data, f"Sensitive field '{key}' leaked in response"
 
-        # 4. Look access_token is present in the data
-        expected_keys = {
-            "access_token",
-        }
-        assert set(data.keys()) >= expected_keys, (
-            f"Missing keys: {expected_keys - set(data.keys())}"
-        )
-
-        # 5. Sensitive keys are not present in the response
-        forbidden_keys = {"password", "password_hash", "hashed_password"}
-        for key in forbidden_keys:
-            assert key not in data, f"Sensitive field '{key}' leaked in response"
-
-        # 6. Assert refresh_token cookie is set
-        assert response.cookies.get("refresh_token") is not None
+    # 8. Assert refresh_token cookie is set
+    assert response.cookies.get("refresh_token") is not None
 
 
 async def test_login_wrong_password(client, viewer_role):
