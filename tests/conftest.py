@@ -1,4 +1,3 @@
-from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -108,7 +107,7 @@ def override_get_db(db):
 
 
 # ──────────── Mock Redis ──────────── #
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session")
 async def mock_redis():
     """Mock Redis client to avoid actual Redis connections during tests."""
     from app.core import dependencies as dependencies_module
@@ -150,12 +149,10 @@ async def mock_redis():
 
 
 # ──────────── Mock JWT and RSA Keys ──────────── #
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session")
 def mock_jwt():
-    """Mock JWT encoding and RSA keys to avoid needing real keys in integration tests."""  # noqa: E501
-    from uuid import uuid4
+    """Mock RSA keys only — JWT encode/decode use real crypto in integration tests."""  # noqa: E501
 
-    import jwt as jwt_module
     from cryptography.hazmat.primitives.asymmetric import rsa
 
     from app.core import keys as keys_module
@@ -170,73 +167,23 @@ def mock_jwt():
     mock_key_pair.private_key = private_key
     mock_key_pair.public_key = public_key
 
-    # Mock jwt.encode to return a predictable token
-    mock_encode = MagicMock(return_value="dummy_jwt_token")
-
-    # Store the expected user ID for decode to return
-    # This will be set by individual test fixtures
-    mock_decode_user_data = {}
-
-    def make_mock_decode():
-        def mock_decode(token, key, algorithms, options):
-            # If token is in the map, return that user's data
-            if token in mock_decode_user_data:
-                return mock_decode_user_data[token]
-            # Default fallback
-            return {
-                "sub": str(uuid4()),
-                "iss": "access-control-service",
-                "iat": 9999999999,
-                "exp": 9999999999,
-                "jti": str(uuid4()),
-                "username": "default",
-                "roles": ["viewer"],
-                "permissions": ["users:read"],
-                "is_super_user": False,
-            }
-
-        return MagicMock(side_effect=mock_decode)
-
-    # Patch key_pair in both security and keys modules (where it's used) and jwt functions  # noqa: E501
+    # Patch key_pair in both security and keys modules (where it's used)
+    # Do NOT patch jwt.encode or jwt.decode — let them work with real crypto
     patches = [
         patch.object(security_module, "key_pair", mock_key_pair),
         patch.object(keys_module, "key_pair", mock_key_pair),
         # Also patch the class instantiation to return our mock
         patch.object(keys_module, "RSAKeyPair", return_value=mock_key_pair),
-        patch.object(jwt_module, "encode", mock_encode),
-        patch.object(jwt_module, "decode", make_mock_decode()),
     ]
 
     for p in patches:
         p.start()
 
-    # Expose the map for test fixtures to populate
-    yield mock_decode_user_data
+    # Expose the mock key pair for test fixtures to use for token generation
+    yield mock_key_pair
 
     for p in patches:
         p.stop()
-
-
-# ──────────── Override Lifespan ──────────── #
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def override_lifespan():
-    """Override the app's lifespan to skip external service connections during tests."""
-
-    # Store original lifespan
-    original_lifespan = app.router.lifespan_context
-
-    # Create a no-op lifespan that just yields
-    @asynccontextmanager
-    async def mock_lifespan(app):
-        yield
-
-    # Apply the override
-    app.router.lifespan_context = mock_lifespan
-
-    yield
-
-    # Restore original lifespan after all tests (though session scope means this runs at end)  # noqa: E501
-    app.router.lifespan_context = original_lifespan
 
 
 # ──────────── HTTP client ──────────── #
