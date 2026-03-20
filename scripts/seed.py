@@ -1,11 +1,18 @@
 import asyncio
 import logging
+import sys
+from pathlib import Path
 
 from sqlalchemy import select
 
-from app.db.session import async_session_factory
-from app.models.association import RolePermission
-from app.models.role import Permission, Role
+# Add the workspace root to Python path to enable 'app' imports
+workspace_root = Path(__file__).parent.parent
+if str(workspace_root) not in sys.path:
+    sys.path.insert(0, str(workspace_root))
+
+from app.db.session import async_session_factory  # noqa: E402
+from app.models.association import RolePermission  # noqa: E402
+from app.models.role import Permission, Role  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
