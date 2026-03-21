@@ -570,9 +570,10 @@ async def test_get_audit_logs_pagination(client: AsyncClient, admin_token, db):
 
 async def test_admin_routes_require_super_user(client: AsyncClient, mock_jwt):
     """Test that admin endpoints require super user privileges."""
-    import jwt
     from datetime import datetime, timedelta, timezone
     from uuid import uuid4
+
+    import jwt
 
     from app.config import settings
 
@@ -593,7 +594,9 @@ async def test_admin_routes_require_super_user(client: AsyncClient, mock_jwt):
     }
 
     # Generate a real JWT token using the test private key
-    regular_token = jwt.encode(payload, mock_jwt.private_key, algorithm=settings.jwt_algorithm)
+    regular_token = jwt.encode(
+        payload, mock_jwt.private_key, algorithm=settings.jwt_algorithm
+    )
 
     # Try to access admin endpoint
     response: Response = await client.post(

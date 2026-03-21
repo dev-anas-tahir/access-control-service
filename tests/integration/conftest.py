@@ -35,7 +35,7 @@ def patch_app_main(mock_redis, mock_jwt, engine):
     mock_key_pair = mock_jwt
 
     # Ensure the key_pair has a no-op load method
-    if not hasattr(mock_key_pair, 'load'):
+    if not hasattr(mock_key_pair, "load"):
         mock_key_pair.load = MagicMock(return_value=None)
 
     # mock_redis is the mock client from the root conftest

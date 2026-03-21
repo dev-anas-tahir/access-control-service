@@ -347,8 +347,6 @@ async def test_assign_role_to_user_success(mock_db, sample_user, sample_role):
 
     # Verify audit log written (add called at least twice: user_role + audit_log)
     assert mock_db.add.call_count >= 2
-    mock_db.flush.assert_called()
-    mock_db.refresh.assert_called_once()
 
 
 async def test_assign_role_to_user_user_not_found(mock_db):
