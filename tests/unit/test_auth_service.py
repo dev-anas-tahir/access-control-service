@@ -67,7 +67,7 @@ async def test_logout_revokes_jti_with_correct_ttl():
         # Verify setex was called with TTL close to 3600 seconds
         call_args = mock_setex.call_args
         ttl = call_args[0][1]
-        # TTL should be approximately 3600 (accounting for a few seconds of execution time)
+        # TTL should be approximately 3600 (accounting for a few seconds of execution time)  # noqa: E501
         assert 3595 <= ttl <= 3600
 
 
