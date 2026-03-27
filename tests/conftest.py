@@ -2,8 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -16,7 +15,6 @@ from app.config import settings
 from app.db.session import get_db
 from app.main import app
 from app.models.base import Base
-from app.models.role import Role
 
 
 # ──────────── Test Engine ──────────── #
@@ -74,21 +72,6 @@ async def db(engine):
             )
         )
         await cleanup_session.commit()
-
-
-# ──────────── Viewer role fixture ──────────── #
-@pytest_asyncio.fixture
-async def viewer_role(db):
-    """Ensure required roles exist in the database for testing."""
-    # Check if viewer role exists
-    result = await db.execute(select(Role).where(Role.name == "viewer"))
-    role = result.scalar_one_or_none()
-
-    if not role:
-        role = Role(name="viewer", description="Default viewer role", is_system=True)
-        db.add(role)
-        await db.flush()
-    return role
 
 
 # ──────────── Override get_db dependency ──────────── #
@@ -184,15 +167,3 @@ def mock_jwt():
 
     for p in patches:
         p.stop()
-
-
-# ──────────── HTTP client ──────────── #
-@pytest_asyncio.fixture
-async def client(override_get_db):
-    # 1. Create AsyncClient with ASGITransport(app=app)
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        # 2. Base_url="http://test"
-        base_url="http://test",
-    ) as ac:
-        yield ac
