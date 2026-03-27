@@ -102,7 +102,7 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
         )
-    except Exception as e:
+    except Exception:
         # Log the exception internally (logging should be configured in core/logger.py)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -141,7 +141,7 @@ async def refresh(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
         )
-    except Exception as e:
+    except Exception:
         # Log the exception internally (logging should be configured in core/logger.py)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -172,7 +172,7 @@ async def logout(
         await auth_service.logout(refresh_token, payload)
         response.delete_cookie(key="refresh_token")
         return None
-    except Exception as e:
+    except Exception:
         # Log the exception internally (logging should be configured in core/logger.py)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
