@@ -4,81 +4,11 @@ Integration tests for admin API routes.
 Tests all admin endpoints with real database operations (but mocked external services).
 """
 
-import pytest
 from httpx import AsyncClient, Response
 
 from app.models.association import RolePermission, UserRole
 from app.models.audit_log import AuditLog
 from app.models.role import Permission, Role
-from app.models.user import User
-
-
-@pytest.fixture
-async def admin_user(db):
-    """Create a user with super_user privileges for admin endpoints."""
-    from app.services.auth_service import hash_password
-
-    admin = User(
-        username="admin",
-        email="admin@example.com",
-        password_hash=hash_password("AdminPass123!"),
-        is_super_user=True,
-        is_active=True,
-    )
-    db.add(admin)
-    await db.flush()
-    await db.refresh(admin)
-    return admin
-
-
-@pytest.fixture
-async def admin_token(admin_user, mock_jwt):
-    """Generate a real JWT access token for the admin user using test keys."""
-    from datetime import datetime, timedelta, timezone
-    from uuid import uuid4
-
-    import jwt
-
-    from app.config import settings
-
-    # Build payload with proper timestamps
-    now = datetime.now(timezone.utc)
-    expire = now + timedelta(minutes=settings.jwt_access_token_expire_minutes)
-
-    payload = {
-        "sub": str(admin_user.id),
-        "iss": settings.jwt_issuer,
-        "iat": now,
-        "exp": expire,
-        "jti": str(uuid4()),
-        "username": admin_user.username,
-        "roles": ["admin"],
-        "permissions": ["*"],
-        "is_super_user": True,
-    }
-
-    # Use the mock_jwt's private key to sign the token (real JWT encoding)
-    token = jwt.encode(payload, mock_jwt.private_key, algorithm=settings.jwt_algorithm)
-
-    return token
-
-
-@pytest.fixture
-async def regular_user(db):
-    """Create a regular user for role assignment tests."""
-    from app.services.auth_service import hash_password
-
-    user = User(
-        username="regularuser",
-        email="user@example.com",
-        password_hash=hash_password("UserPass123!"),
-        is_super_user=False,
-        is_active=True,
-    )
-    db.add(user)
-    await db.flush()
-    await db.refresh(user)
-    return user
 
 
 async def test_create_role_success(client: AsyncClient, admin_token, viewer_role):
