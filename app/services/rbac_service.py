@@ -125,9 +125,15 @@ async def assign_permission(
         db.add(permission)
         await db.flush()
 
-    # 3. Check not laready assigned
-    already_assigned = any(p.id == permission.id for p in role.permissions)
-    if already_assigned:
+    # 3. Check not already assigned - query the database directly to avoid stale session data  # noqa: E501
+    assoc_result = await db.execute(
+        select(RolePermission).where(
+            RolePermission.role_id == role.id,
+            RolePermission.permission_id == permission.id,
+        )
+    )
+    existing_assoc = assoc_result.scalar_one_or_none()
+    if existing_assoc:
         raise AlreadyAssignedError("Permission already assigned")
 
     # 4. Create association
