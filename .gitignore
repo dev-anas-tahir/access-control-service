@@ -12,3 +12,6 @@ keys/
 
 # Env files
 .env
+
+# IDEs
+.vscode
