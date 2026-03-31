@@ -144,7 +144,9 @@ async def assign_permission(
     )
     db.add(role_perm)
     await db.flush()  # This ensures the record is inserted and gets the server_default values  # noqa: E501
-    await db.refresh(role_perm)  # This refreshes the object with the values from the database  # noqa: E501
+    await db.refresh(
+        role_perm
+    )  # This refreshes the object with the values from the database  # noqa: E501
 
     # 5. Audit log
     await _write_audit_log(
@@ -216,7 +218,9 @@ async def assign_role_to_user(
     user_role = UserRole(user_id=user.id, role_id=role.id, assigned_by=actor_id)
     db.add(user_role)
     await db.flush()  # This ensures the record is inserted and gets the server_default values  # noqa: E501
-    await db.refresh(user_role)  # This refreshes the object with the values from the database  # noqa: E501
+    await db.refresh(
+        user_role
+    )  # This refreshes the object with the values from the database  # noqa: E501
 
     # 4. Audit log
     await _write_audit_log(

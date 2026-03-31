@@ -22,13 +22,13 @@ def validate_request_id(request_id: Optional[str]) -> bool:
     """
     if not request_id:
         return False
-    
+
     # Check length (prevent resource exhaustion)
     if len(request_id) > 64:
         return False
 
     # Check that it contains only safe characters (alphanumeric, hyphens, underscores, dots)  # noqa: E501
-    if not re.match(r'^[a-zA-Z0-9._-]+$', request_id):
+    if not re.match(r"^[a-zA-Z0-9._-]+$", request_id):
         return False
 
     return True

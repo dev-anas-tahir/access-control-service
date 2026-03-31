@@ -194,7 +194,9 @@ async def test_assign_permission_success(mock_db, sample_role, sample_permission
     mock_db.execute.side_effect = [
         mock_result(scalar=sample_role),  # get role
         mock_result(scalar=None),  # permission not found
-        mock_result(scalar=None),  # check for existing role-permission association (returns None = not found)  # noqa: E501
+        mock_result(
+            scalar=None
+        ),  # check for existing role-permission association (returns None = not found)  # noqa: E501
     ]
 
     result = await rbac_service.assign_permission(mock_db, role_id, data, actor_id)
@@ -237,7 +239,9 @@ async def test_assign_permission_already_assigned(
     mock_db.execute.side_effect = [
         mock_result(scalar=sample_role),  # get role with permissions
         mock_result(scalar=sample_permission),  # permission exists - return same object
-        mock_result(scalar=RolePermission()),  # check for existing role-permission association (returns existing association)  # noqa: E501
+        mock_result(
+            scalar=RolePermission()
+        ),  # check for existing role-permission association (returns existing association)  # noqa: E501
     ]
 
     with pytest.raises(AlreadyAssignedError, match="Permission already assigned"):
@@ -257,7 +261,9 @@ async def test_assign_permission_creates_new_permission_if_not_exists(
     mock_db.execute.side_effect = [
         mock_result(scalar=sample_role),  # get role
         mock_result(scalar=None),  # permission not found
-        mock_result(scalar=None),  # check for existing role-permission association (returns None = not found)  # noqa: E501
+        mock_result(
+            scalar=None
+        ),  # check for existing role-permission association (returns None = not found)  # noqa: E501
     ]
 
     await rbac_service.assign_permission(mock_db, role_id, data, actor_id)
