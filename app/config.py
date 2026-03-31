@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_name: str = "access-control-service"
     app_debug: bool = False
+    log_level: str = "INFO"
 
     # ──────────── DATABASE ──────────── #
     database_url: PostgresDsn = Field(default=...)

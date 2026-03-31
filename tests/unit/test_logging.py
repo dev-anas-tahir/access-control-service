@@ -63,7 +63,7 @@ def test_json_formatter_outputs_valid_json(restore_root_logger):
         lineno=1,
         msg="Test message",
         args=(),
-        exc_info=None
+        exc_info=None,
     )
 
     output = formatter.format(record)
@@ -92,7 +92,7 @@ def test_json_formatter_includes_exception(restore_root_logger):
             lineno=1,
             msg="Error occurred",
             args=(),
-            exc_info=exc_info
+            exc_info=exc_info,
         )
 
     output = formatter.format(record)
@@ -112,7 +112,7 @@ def test_json_formatter_includes_extra_fields(restore_root_logger):
         lineno=1,
         msg="Test with extra",
         args=(),
-        exc_info=None
+        exc_info=None,
     )
     # Add custom extra fields
     record.user_id = "12345"

@@ -27,6 +27,7 @@ from sqlalchemy import text
 from app.api.v1 import admin, auth, jwks
 from app.config import settings
 from app.core.keys import key_pair
+from app.core.logging import setup_logging
 from app.core.middleware import RequestIDMiddleware
 
 # from app.db.pubsub import pubsub_client, topic_path
@@ -67,42 +68,47 @@ async def lifespan(app: FastAPI):
     """
 
     # ──────────── START UP ──────────── #
+
+    # 1. setup logging (before any other operations to capture logs during startup)
+    if not settings.app_debug:
+        setup_logging(settings.log_level) 
+
     logger.info("Starting up...")
 
-    # 1. load the RSA keys
+    # 2. load the RSA keys
     try:
         key_pair.load(settings.private_key_path, settings.public_key_path)
-        logger.info("✅ RSA keys loaded")
+        logger.info("RSA keys loaded")
     except FileNotFoundError as e:
         raise RuntimeError(
-            f"❌ RSA key file not found in the dir ./keys: {e}. Did you run openssl genrsa keys/[key_name] 2048?"  # noqa: E501
+            f"RSA key file not found in the dir ./keys: {e}. Did you run openssl genrsa keys/[key_name] 2048?"  # noqa: E501
         )
 
-    # 2. connect to database
+    # 3. connect to database
     try:
         async with async_engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
-        logger.info("✅ Database connection established")
+        logger.info("Database connection established")
     except Exception as e:
-        raise RuntimeError(f"❌ Database connection failed: {e}")
+        raise RuntimeError(f"Database connection failed: {e}")
 
-    # 3. connect to redis
+    # 4. connect to redis
     try:
         await redis_client.ping()
-        logger.info("✅ Redis connection established")
+        logger.info("Redis connection established")
     except Exception as e:
-        raise RuntimeError(f"❌ Redis connection failed: {e}")
+        raise RuntimeError(f"Redis connection failed: {e}")
 
-    # 4. connect to pub/sub
+    # 5. connect to pub/sub
     # try:
     #     pubsub_client.get_topic(request={"topic": topic_path})
-    #     logger.info("✅ Pub/Sub topic verified")
+    #     logger.info("Pub/Sub topic verified")
     # except NotFound:
     #     raise RuntimeError(
-    #         f"❌ Pub/Sub topic '{topic_path}' not found. Did you create it in GCP?"
+    #         f"Pub/Sub topic '{topic_path}' not found. Did you create it in GCP?"
     #     )
     # except Exception as e:
-    #     raise RuntimeError(f"❌ Pub/Sub connection failed: {e}")
+    #     raise RuntimeError(f"Pub/Sub connection failed: {e}")
 
     yield
 
@@ -111,15 +117,15 @@ async def lifespan(app: FastAPI):
 
     # 1. close database connection
     await async_engine.dispose()
-    logger.info("✅ Database connections closed")
+    logger.info("Database connections closed")
 
     # 2. close redis connection
     await redis_client.aclose()
-    logger.info("✅ Redis connection closed")
+    logger.info("Redis connection closed")
 
     # 3. stop the pub/sub connection
     # pubsub_client.stop()
-    # logger.info("✅ Pub/Sub connection closed")
+    # logger.info("Pub/Sub connection closed")
 
 
 app = FastAPI(
