@@ -1,6 +1,8 @@
 """Middleware for request ID tracking."""
 
+import logging
 import re
+import time
 import uuid
 from typing import Optional
 
@@ -9,6 +11,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.core.context import request_id
+
+logger = logging.getLogger(__name__)
 
 
 def validate_request_id(request_id: Optional[str]) -> bool:
@@ -48,6 +52,12 @@ class RequestResponseMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
+        # Log request details
+        method = request.method
+        url = str(request.url)
+        client_ip = request.client.host if request.client else "unknown"
+        start_time = time.perf_counter()
+
         # Get request ID from header or generate a new one
         client_request_id = request.headers.get("X-Request-ID")
 
@@ -63,6 +73,18 @@ class RequestResponseMiddleware(BaseHTTPMiddleware):
         try:
             # Call the next handler
             response = await call_next(request)
+
+            # Log response details
+            duration = (
+                time.perf_counter() - start_time
+            ) * 1000  # Convert to milliseconds
+            status_code = response.status_code
+
+            # Log the request/response details
+            logger.info(
+                f"Request: {method} {url} from {client_ip} - "
+                f"Response: {status_code} in {duration:.2f}ms"
+            )
 
             # Add request ID to response headers
             response.headers["X-Request-ID"] = request_id_value
