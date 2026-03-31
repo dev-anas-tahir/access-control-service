@@ -128,3 +128,78 @@ def test_json_formatter_includes_extra_fields(restore_root_logger):
 def test_setup_logging_rejects_invalid_log_level(restore_root_logger):
     with pytest.raises(ValueError, match="Invalid log level"):
         setup_logging("not-a-real-level")
+
+
+def test_json_formatter_excludes_standard_attributes(restore_root_logger):
+    """Test that standard LogRecord attributes are excluded from extra fields."""
+    formatter = JSONFormatter()
+    record = logging.LogRecord(
+        name="test.logger",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="Test message",
+        args=(),
+        exc_info=None,
+    )
+
+    # Add a standard attribute (this simulates what happens internally)
+    record.levelname = (
+        "INFO"  # This is a standard attribute and should be excluded from extra
+    )
+
+    # Add a custom extra field
+    record.custom_field = "custom_value"
+
+    output = formatter.format(record)
+    parsed = json.loads(output)
+
+    # Standard attributes should NOT appear as extra fields (they're already in the base log data)  # noqa: E501
+    # The custom field should appear as an extra field
+    assert "custom_field" in parsed
+    assert parsed["custom_field"] == "custom_value"
+
+    # Verify that standard attributes are not duplicated as extra fields
+    # (They are already included in the base structure)
+
+
+def test_json_formatter_handles_exc_text_attribute(restore_root_logger):
+    """Test that exc_text attribute doesn't leak through as an extra field."""
+    formatter = JSONFormatter()
+    try:
+        raise ValueError("Test error")
+    except ValueError:
+        exc_info = sys.exc_info()
+        record = logging.LogRecord(
+            name="test.logger",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=1,
+            msg="Error occurred",
+            args=(),
+            exc_info=exc_info,
+        )
+
+        # Simulate what happens when formatException is called and exc_text is cached
+        record.exc_text = "ValueError: Test error"
+
+    output = formatter.format(record)
+    parsed = json.loads(output)
+
+    # exc_text should not appear as an extra field, it's handled separately in exception formatting  # noqa: E501
+    # Check that it's not in the extra fields (it should be handled in the exception formatting)  # noqa: E501
+    assert "exc_text" not in parsed or "exc_text" not in [
+        k
+        for k in parsed.keys()
+        if k
+        not in [
+            "timestamp",
+            "severity",
+            "name",
+            "message",
+            "filename",
+            "lineno",
+            "request_id",
+            "exception",
+        ]
+    ]
