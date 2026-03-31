@@ -34,7 +34,7 @@ def validate_request_id(request_id: Optional[str]) -> bool:
     return True
 
 
-class RequestIDMiddleware(BaseHTTPMiddleware):
+class RequestResponseMiddleware(BaseHTTPMiddleware):
     """Middleware that adds a unique request ID to each request.
 
     The request ID is either:

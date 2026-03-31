@@ -28,7 +28,7 @@ from app.api.v1 import admin, auth, jwks
 from app.config import settings
 from app.core.keys import key_pair
 from app.core.logging import setup_logging
-from app.core.middleware import RequestIDMiddleware
+from app.core.middleware import RequestResponseMiddleware
 
 # from app.db.pubsub import pubsub_client, topic_path
 from app.db.redis import redis_client
@@ -138,7 +138,7 @@ app = FastAPI(
 )
 
 # Add request ID middleware
-app.add_middleware(RequestIDMiddleware)
+app.add_middleware(RequestResponseMiddleware)
 
 # ──────────── JWKS at root ──────────── #
 app.include_router(jwks.router)
