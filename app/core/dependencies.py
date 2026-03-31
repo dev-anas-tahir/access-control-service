@@ -58,7 +58,7 @@ async def require_super_user(
         TokenPayload: The payload of the access token if the user has super user privileges.
     Raises:
         HTTPException: If the user does not have super user privileges.
-    """
+    """  # noqa: E501
     if not payload.get("is_super_user"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

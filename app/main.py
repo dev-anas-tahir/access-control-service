@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
 
     # 1. setup logging (before any other operations to capture logs during startup)
     if not settings.app_debug:
-        setup_logging(settings.log_level) 
+        setup_logging(settings.log_level)
 
     logger.info("Starting up...")
 
