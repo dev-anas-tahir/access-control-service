@@ -144,23 +144,22 @@ access-control-service/
 
 ### Deployment Model
 
-```
-┌─────────────────┐
-│   Load Balancer │
-│   (GCP HTTP(S)) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐    ┌──────────────┐    ┌──────────┐
-│   Service Inst  │────│   Cloud SQL  │    │ Memory   │
-│   (Cloud Run)   │    │  (PostgreSQL)│    │ store    │
-└─────────────────┘    └──────────────┘    └──────────┘
-         │
-         ▼
-┌─────────────────┐
-│   Pub/Sub Topic │
-│  (Activity Log) │
-└─────────────────┘
+```mermaid
+---
+config:
+  theme: 'dark'
+---
+flowchart TD
+    LB["Load Balancer<br>(GCP HTTP(S))"]
+    SI["Service Instance<br>(Cloud Run)"]
+    CS@{ shape: cyl, label: "Cloud SQL<br>(PostgreSQL)" }
+    MS@{ shape: cyl, label: "Memory Store" }
+    PS["Pub/Sub Topic<br>(Activity Log)"]
+
+    LB --> SI
+    SI --> CS
+    SI --> MS
+    SI --> PS
 ```
 
 ## Next Steps in This Documentation

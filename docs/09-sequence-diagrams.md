@@ -91,7 +91,7 @@ sequenceDiagram
                 Redis-->>Service: OK
                 Service-->>API: (access_token, refresh_token)
                 API-->>Client: 200 OK {access_token}
-                API->>Client: Set-Cookie: refresh_token=...; HttpOnly
+                API->>Client: 'Set-Cookie: refresh_token=...#59; HttpOnly'
             end
         end
     end
@@ -147,7 +147,7 @@ sequenceDiagram
                     Service->>Redis: SETEX refresh_token:{new_token} 7days user_id
                     Service-->>API: (new_access_token, new_refresh_token)
                     API-->>Client: 200 OK {access_token}
-                    API->>Client: Set-Cookie: refresh_token=new...
+                    API->>Client: 'Set-Cookie: refresh_token=new...'
                 end
             end
         end
@@ -183,7 +183,7 @@ sequenceDiagram
     Redis-->>Service: OK
     Service-->>API: None
     API-->>Client: 204 No Content
-    API->>Client: Set-Cookie: refresh_token=; Max-Age=0
+    API->>Client: 'Set-Cookie: refresh_token=#59; Max-Age=0'
 ```
 
 **Key Points**:
@@ -429,36 +429,6 @@ sequenceDiagram
 - Dependencies are chained: `require_super_user` depends on `get_current_user`
 - Both executed before route handler
 - 403 raised before any business logic runs
-
----
-
-## 12. Logout with Revocation
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant API (get_current_user)
-    participant Service (logout)
-    participant Redis
-
-    Client->>API: POST /auth/logout<br/>Bearer: <token><br/>Cookie: refresh_token=...
-    API->>API: get_current_user validates token
-    API-->>API: payload with jti, sub, exp
-    API->>Service: logout(refresh_token, payload)
-    Service->>Redis: DELETE refresh_token:{token}
-    Redis-->>Service: (deleted count)
-    Service->>Service: ttl = payload["exp"] - now()
-    Service->>Redis: SETEX revoked_jti:{jti} ttl "1"
-    Redis-->>Service: OK
-    Service-->>API: None
-    API-->>Client: 204 No Content<br/>Set-Cookie: refresh_token=""; Max-Age=0
-```
-
-**Key Points**:
-- Access token remains valid for remaining lifetime but is untrusted after JTI stored
-- If attacker has access token, API will reject on next request (JTI found in revoked set)
-- Refresh token cookie cleared from browser
-- Token rotation not needed on logout (token already consumed)
 
 ---
 

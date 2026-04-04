@@ -236,28 +236,22 @@ Open interactive API docs:
 
 ### Architecture
 
-```
-┌─────────────────────────────────────────────┐
-│ Cloud HTTP(S) Load Balancer                 │
-│   - SSL termination                        │
-│   - Path-based routing to Cloud Run        │
-└───────────────┬─────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────┐
-│ Cloud Run (fully managed, serverless)      │
-│   - Auto-scaling (min 1, max N instances)  │
-│   - Container image from Cloud Build       │
-│   - Service account with IAM roles         │
-└───────────────┬─────────────────────────────┘
-                │
-    ┌───────────┼───────────┐
-    ▼           ▼           ▼
-┌─────────┐ ┌─────────┐ ┌─────────────┐
-│ Cloud   │ │Memory-  │ │ Pub/Sub     │
-│ SQL     │ │store    │ │ Topic       │
-│ (PostgreSQL)│ (Redis) │ │             │
-└─────────┘ └─────────┘ └─────────────┘
+```mermaid
+---
+config:
+  theme: 'dark'
+---
+flowchart TD
+    LB["Load Balancer<br>(GCP HTTP(S))"]
+    SI["Service Instance<br>(Cloud Run)"]
+    CS@{ shape: cyl, label: "Cloud SQL<br>(PostgreSQL)" }
+    MS@{ shape: cyl, label: "Memory Store" }
+    PS["Pub/Sub Topic<br>(Activity Log)"]
+
+    LB --> SI
+    SI --> CS
+    SI --> MS
+    SI --> PS
 ```
 
 ---
