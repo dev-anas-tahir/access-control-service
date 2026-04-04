@@ -200,6 +200,20 @@ PUBSUB_TOPIC_ACTIVITY=...
 - Provide: async DB session, overridden `get_db` dependency, `AsyncClient`, Redis mock.
 - Use `pytest-asyncio` with `asyncio_mode = "auto"` in `pyproject.toml`.
 
+---
+
+## Pull Request Protocol
+
+When asked to "create a PR" or "prepare a PR", the agent MUST follow the structure defined in `.github/PULL_REQUEST_TEMPLATE.md` to provide a clear, comprehensive description of the changes.
+
+- **Mandatory PR Sections**:
+  1. **Description**: Clear summary, motivation, context, and issue references.
+  2. **Type of change**: Clearly identify if it's a bug fix, feature, or breaking change.
+  3. **Testing**: List the specific tests performed (unit, integration, manual) and the configuration used.
+  4. **Checklist**: Validate that the code follows guidelines, is documented, has tests, and passes all checks.
+- **Tone**: Professional and concise.
+- **Accuracy**: Ensure the "How Has This Been Tested?" section accurately reflects the tests run during the task.
+
 <!-- TODO: If you have a specific test database name or a docker-compose setup for tests, document it here. -->
 
 ---
