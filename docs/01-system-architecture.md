@@ -4,52 +4,58 @@
 
 The Access Control Service follows a layered architecture with clear separation of concerns:
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                           API Layer (FastAPI)                       │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────────┐  │
-│  │   /auth     │ │   /admin    │ │      /.well-known/          │  │
-│  │  endpoints  │ │  endpoints  │ │        jwks.json            │  │
-│  └─────────────┘ └─────────────┘ └─────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                       Service Layer                                │
-│  ┌──────────────────┐                    ┌──────────────────────┐ │
-│  │   AuthService    │                    │    RBACService       │ │
-│  │  • signup()      │                    │  • create_role()     │ │
-│  │  • login()       │                    │  • delete_role()     │ │
-│  │  • refresh()     │                    │  • assign_permission │ │
-│  │  • logout()      │                    │  • revoke_permission │ │
-│  └──────────────────┘                    │  • assign_role_to_user│ │
-│                                          │  • revoke_role_from_user│ │
-│                                          │  • get_audit_logs()   │ │
-│                                          └──────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                       Data Layer (SQLAlchemy)                      │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
-│  │   User   │  │   Role   │  │Permission│  │    AuditLog       │  │
-│  └──────────┘  └──────────┘  └──────────┘  └───────────────────┘  │
-│        │              │              │                               │
-│        └──────┬───────┴──────┬──────┘                               │
-│               └───────────────┘                                       │
-│              Association Tables                                       │
-│        (user_roles, role_permissions)                                │
-└─────────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                     External Services                              │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────────┐  │
-│  │  PostgreSQL │  │    Redis    │  │        GCP Pub/Sub          │  │
-│  │   (Cloud    │  │ (Memorystore│  │      (Activity Log)        │  │
-│  │    SQL)     │  │    / Redis) │  │                           │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph API["API Layer (FastAPI)"]
+        direction LR
+        AUTH[auth endpoints]
+        ADMIN[admin endpoints]
+        JWKS[.well-known/jwks]
+    end
+
+    subgraph SVC["Service Layer"]
+        direction LR
+        AUTHSVC[AuthService<br/>- signup<br/>- login<br/>- refresh<br/>- logout]
+        RBACSVC[RBACService<br/>- create_role<br/>- delete_role<br/>- assign_permission<br/>- revoke_permission<br/>- assign_role_to_user<br/>- revoke_role_from_user<br/>- get_audit_logs]
+    end
+
+    subgraph DATA["Data Layer (SQLAlchemy)"]
+        direction LR
+        USER[User]
+        ROLE[Role]
+        PERM[Permission]
+        AUDIT[AuditLog]
+        ASSOC[Association Tables<br/>user_roles<br/>role_permissions]
+    end
+
+    subgraph EXT["External Services"]
+        direction LR
+        PG[PostgreSQL Cloud SQL]
+        REDIS[Redis Memorystore]
+        PUBSUB[GCP PubSub Activity Log]
+    end
+
+    API --> SVC
+    SVC --> DATA
+    DATA --> EXT
+
+    style API fill:#1e3a5f,stroke:#4fc3f7,color:#ffffff
+    style SVC fill:#4a148c,stroke:#ce93d8,color:#ffffff
+    style DATA fill:#1b5e20,stroke:#81c784,color:#ffffff
+    style EXT fill:#e65100,stroke:#ffcc80,color:#ffffff
+    style AUTH fill:#1565c0,stroke:#4fc3f7,color:#ffffff
+    style ADMIN fill:#1565c0,stroke:#4fc3f7,color:#ffffff
+    style JWKS fill:#1565c0,stroke:#4fc3f7,color:#ffffff
+    style AUTHSVC fill:#6a1b9a,stroke:#ce93d8,color:#ffffff
+    style RBACSVC fill:#6a1b9a,stroke:#ce93d8,color:#ffffff
+    style USER fill:#2e7d32,stroke:#81c784,color:#ffffff
+    style ROLE fill:#2e7d32,stroke:#81c784,color:#ffffff
+    style PERM fill:#2e7d32,stroke:#81c784,color:#ffffff
+    style AUDIT fill:#2e7d32,stroke:#81c784,color:#ffffff
+    style ASSOC fill:#2e7d32,stroke:#81c784,color:#ffffff
+    style PG fill:#ef6c00,stroke:#ffcc80,color:#ffffff
+    style REDIS fill:#ef6c00,stroke:#ffcc80,color:#ffffff
+    style PUBSUB fill:#ef6c00,stroke:#ffcc80,color:#ffffff
 ```
 
 ## Layer Responsibilities
@@ -204,12 +210,12 @@ graph TB
 
     AUTH_SVC --> PUBSUB
 
-    style API1 fill:#007bb0
-    style AUTH_SVC fill:#850099
-    style RBAC_SVC fill:#850099
-    style PG fill:#488701
-    style REDIS fill:#8a002e
-    style PUBSUB fill:#9c5d00
+    style API1 fill:#0d47a1,stroke:#4fc3f7,color:#ffffff
+    style AUTH_SVC fill:#4a148c,stroke:#ce93d8,color:#ffffff
+    style RBAC_SVC fill:#4a148c,stroke:#ce93d8,color:#ffffff
+    style PG fill:#1b5e20,stroke:#81c784,color:#ffffff
+    style REDIS fill:#b71c1c,stroke:#ef9a9a,color:#ffffff
+    style PUBSUB fill:#e65100,stroke:#ffcc80,color:#ffffff
 ```
 
 ## Deployment Diagram
@@ -264,90 +270,91 @@ graph TB
 
     LOCAL --> LB
 
-    style LB fill:#007bb0
-    style CR fill:#488701
-    style CS fill:#488701
-    style MS fill:#8a002e
-    style PS fill:#9c5d00
-    style SM fill:#850099
+    style LB fill:#0d47a1,stroke:#4fc3f7,color:#ffffff
+    style CR fill:#1b5e20,stroke:#81c784,color:#ffffff
+    style CS fill:#1b5e20,stroke:#81c784,color:#ffffff
+    style MS fill:#b71c1c,stroke:#ef9a9a,color:#ffffff
+    style PS fill:#e65100,stroke:#ffcc80,color:#ffffff
+    style SM fill:#4a148c,stroke:#ce93d8,color:#ffffff
 ```
 
 ## Data Flow Patterns
 
 ### Authentication Flow
 
-```
-┌─────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────┐
-│ Client  │────▶│   API    │────▶│ AuthService  │────▶│  Redis   │
-│         │     │ (auth)   │     │              │     │          │
-└─────────┘     └──────────┘     └──────────────┘     └──────────┘
-     │                 │                    │                  │
-     │                 │                    │                  │
-     ▼                 ▼                    ▼                  ▼
-┌─────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────┐
-│ Response│◀────│  Token   │◀────│   JWT +      │◀────│ Refresh  │
-│  + Cookies│   │Creation  │     │  Password    │     │  Token   │
-│          │     │          │     │  Hash Check  │     │  Store   │
-└─────────┘     └──────────┘     └──────────────┘     └──────────┘
-                                                      
-┌─────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────┐
-│ Client  │────▶│   API    │────▶│ AuthService  │────▶│ PostgreSQL│
-│         │     │ (signup) │     │              │     │          │
-└─────────┘     └──────────┘     └──────────────┘     └──────────┘
-     │                 │                    │                  │
-     ▼                 ▼                    ▼                  ▼
-┌─────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────┐
-│  User   │◀────│  User    │◀────│   Create     │◀────│ INSERT   │
-│ Created │     │  Record  │     │   User +     │     │  User    │
-│         │     │          │     │   Viewer Role│     │          │
-└─────────┘     └──────────┘     └──────────────┘     └──────────┘
+```mermaid
+flowchart LR
+  C1[Client] --> API_AUTH[API auth]
+  API_AUTH --> AUTH_SVC[AuthService]
+  AUTH_SVC --> VERIFY[Verify credentials]
+  VERIFY --> TOKEN_CREATE[Create tokens]
+  TOKEN_CREATE --> RESPONSE[Response with Cookies]
+  TOKEN_CREATE --> REDIS[Redis refresh token store]
+  RESPONSE --> C1
+
+  C2[Client signup] --> API_SIGNUP[API signup]
+  API_SIGNUP --> AUTH_SVC2[AuthService]
+  AUTH_SVC2 --> PG[PostgreSQL]
+  PG --> USER_CREATED[User Created]
+  USER_CREATED --> C2
+
+  style C1 fill:#0f1720,stroke:#000
+  style API_AUTH fill:#003b52,stroke:#000
+  style AUTH_SVC fill:#3b0f4a,stroke:#000
+  style VERIFY fill:#1f2933,stroke:#000
+  style TOKEN_CREATE fill:#1f2933,stroke:#000
+  style RESPONSE fill:#0b1320,stroke:#000
+  style REDIS fill:#4b0014,stroke:#000
+  style C2 fill:#0f1720,stroke:#000
+  style API_SIGNUP fill:#003b52,stroke:#000
+  style AUTH_SVC2 fill:#3b0f4a,stroke:#000
+  style PG fill:#184615,stroke:#000
+  style USER_CREATED fill:#0f1720,stroke:#000
+
 ```
 
 ### RBAC Administration Flow
 
-```
-┌─────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────┐
-│ Super   │────▶│   API    │────▶│  RBACService │────▶│PostgreSQL│
-│  User   │     │ (admin)  │     │              │     │          │
-└─────────┘     └──────────┘     └──────────────┘     └──────────┘
-     │                 │                    │                  │
-     ▼                 ▼                    ▼                  ▼
-┌─────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────┐
-│ Role/   │◀────│  Create  │◀────│   Create     │◀────│ INSERT   │
-│Permission│    │  Update  │     │   Role/Perm  │     │  Record  │
-│ Modified│     │  Delete  │     │   or Assign  │     │          │
-└─────────┘     └──────────┘     └──────────────┘     └──────────┘
-                                    │
-                                    ▼
-                            ┌──────────────┐
-                            │  AuditLog    │
-                            │  Record      │
-                            └──────────────┘
-                                    │
-                                    ▼
-                            ┌──────────┐
-                            │Pub/Sub   │
-                            │(optional)│
-                            └──────────┘
+```mermaid
+flowchart LR
+    Super[Super User] --> API_ADMIN[API admin]
+    API_ADMIN --> RBAC_SVC[RBACService]
+    RBAC_SVC --> PG[PostgreSQL]
+    PG --> ROLE_CHANGED[Role Permission Modified]
+    RBAC_SVC --> AUDIT[AuditLog Record]
+    AUDIT --> PUBSUB[PubSub optional]
+    ROLE_CHANGED --> API_ADMIN
+
+    style Super fill:#0f1720,stroke:#000
+    style API_ADMIN fill:#003b52,stroke:#000
+    style RBAC_SVC fill:#3b0f4a,stroke:#000
+    style PG fill:#184615,stroke:#000
+    style ROLE_CHANGED fill:#0f1720,stroke:#000
+    style AUDIT fill:#0b1320,stroke:#000
+    style PUBSUB fill:#6b3e00,stroke:#000
+
 ```
 
 ### Token Validation Flow
 
-```
-┌─────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────┐
-│ Client  │────▶│   API    │────▶│ get_current_  │────▶│   Redis  │
-│ with    │     │ Protected│     │    user       │     │          │
-│  Token  │     │  Route   │     │ Dependency   │     │ (JTI     │
-└─────────┘     └──────────┘     └──────────────┘     │ Revoke)  │
-     │                 │                    │           └──────────┘
-     ▼                 ▼                    ▼                  │
-┌─────────┐     ┌──────────┐     ┌──────────────┐           │
-│  Valid  │◀────│  Token   │◀────│  verify_      │◀──────────┘
-│  Response│    │  Valid   │     │  access_token │     ┌──────────┐
-│          │     │          │     │               │     │PostgreSQL│
-└─────────┘     └──────────┘     └──────────────┘     │  (User   │
-                                                       │  Load)   │
-                                                       └──────────┘
+```mermaid
+flowchart LR
+    ClientToken[Client with Token] --> API_PROT[API Protected Route]
+    API_PROT --> GET_CURR[get_current_user dependency]
+    GET_CURR --> VERIFY[verify_access_token]
+    VERIFY --> REDIS[Redis JTI revocation check]
+    VERIFY --> PGDB[PostgreSQL user load]
+    PGDB --> GET_CURR
+    GET_CURR --> VALID[Valid Response]
+
+    style ClientToken fill:#0f1720,stroke:#000
+    style API_PROT fill:#003b52,stroke:#000
+    style GET_CURR fill:#1f2933,stroke:#000
+    style VERIFY fill:#1f2933,stroke:#000
+    style REDIS fill:#4b0014,stroke:#000
+    style PGDB fill:#184615,stroke:#000
+    style VALID fill:#0b1320,stroke:#000
+
 ```
 
 ## Interface Contracts
