@@ -21,7 +21,7 @@ It is part of a larger platform migrated from Django and deployed on GCP.
 | Auth             | PyJWT + cryptography (RS256, RSA key pairs)     |
 | Cache / Sessions | GCP Memorystore (Redis) via `redis.asyncio`     |
 | Messaging        | GCP Pub/Sub                                     |
-| Database         | <!-- TODO: PostgreSQL version, e.g. PostgreSQL 15 via Cloud SQL --> |
+| Database         | PostgreSQL 18                                   |
 | Package Manager  | uv                                              |
 | Testing          | pytest + pytest-asyncio + httpx (AsyncClient)   |
 
