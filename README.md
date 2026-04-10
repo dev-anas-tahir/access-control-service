@@ -17,7 +17,7 @@ A comprehensive access control system built with FastAPI, SQLAlchemy, and Pydant
 The service follows a clean architecture pattern with distinct layers:
 
 - **Models**: SQLAlchemy models for database entities
-- **Schemas**: Pydantic models for data validation and serialization
+- **Schemas/DTOs**: Pydantic models for data validation and serialization
 - **Services**: Business logic implementations
 - **Core**: Shared utilities and configurations
 - **DB**: Database and cache utilities
