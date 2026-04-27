@@ -24,7 +24,9 @@ from fastapi import APIRouter, FastAPI
 # from google.api_core.exceptions import NotFound
 from sqlalchemy import text
 
-from app.api.v1 import admin, auth, jwks
+from app.api.v1 import admin, jwks
+from app.auth.infrastructure.http import routes as auth_routes
+from app.auth.infrastructure.http.exception_mapper import register_auth_exception_handlers
 from app.config import settings
 from app.core.keys import key_pair
 from app.core.logging import setup_logging
@@ -140,12 +142,15 @@ app = FastAPI(
 # Add request ID middleware
 app.add_middleware(RequestResponseMiddleware)
 
+# Register auth domain exception → HTTP response mappings
+register_auth_exception_handlers(app)
+
 # ──────────── JWKS at root ──────────── #
 app.include_router(jwks.router)
 
 # ──────────── API v1 ──────────── #
 api_v1 = APIRouter(prefix="/api/v1")
-api_v1.include_router(auth.router)
+api_v1.include_router(auth_routes.router)
 api_v1.include_router(admin.router)
 app.include_router(api_v1)
 
