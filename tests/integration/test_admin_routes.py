@@ -78,13 +78,10 @@ async def test_delete_role_success(client: AsyncClient, admin_token, db, admin_u
 
     assert response.status_code == 204
 
-    # Verify role is soft deleted - check in the same session
-    from sqlalchemy import select
-
-    result = await db.execute(select(Role).where(Role.id == new_role.id))
-    role = result.scalar_one_or_none()
-    assert role is not None
-    assert role.is_deleted is True
+    # Expire the identity-map entry so the next load hits the DB fresh
+    # (the UoW committed in a separate session — our session cache is stale)
+    await db.refresh(new_role)
+    assert new_role.is_deleted is True
 
 
 async def test_delete_system_role_forbidden(

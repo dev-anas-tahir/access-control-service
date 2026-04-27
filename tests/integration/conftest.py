@@ -5,6 +5,7 @@ This conftest enables the real lifespan for integration tests while ensuring
 the database engine and other dependencies are properly configured for the test environment.
 """  # noqa: E501
 
+import types
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -26,7 +27,9 @@ from app.main import app
 from app.models.base import Base
 from app.models.role import Role
 from app.models.user import User
-from app.services.auth_service import hash_password
+from app.shared.infrastructure.crypto.bcrypt_password_hasher import BcryptPasswordHasher
+
+_hasher = BcryptPasswordHasher()
 
 
 # ──────────── Test Engine ──────────── #
@@ -108,13 +111,14 @@ async def admin_user(db):
     admin = User(
         username="admin",
         email="admin@example.com",
-        password_hash=hash_password("AdminPass123!"),
+        password_hash=_hasher.hash("AdminPass123!"),
         is_super_user=True,
         is_active=True,
     )
     db.add(admin)
     await db.flush()
     await db.refresh(admin)
+    await db.commit()
     return admin
 
 
@@ -158,13 +162,14 @@ async def regular_user(db):
     user = User(
         username="regularuser",
         email="user@example.com",
-        password_hash=hash_password("UserPass123!"),
+        password_hash=_hasher.hash("UserPass123!"),
         is_super_user=False,
         is_active=True,
     )
     db.add(user)
     await db.flush()
     await db.refresh(user)
+    await db.commit()
     return user
 
 
@@ -180,6 +185,7 @@ async def viewer_role(db):
         role = Role(name="viewer", description="Default viewer role", is_system=True)
         db.add(role)
         await db.flush()
+        await db.commit()
     return role
 
 
@@ -187,10 +193,9 @@ async def viewer_role(db):
 @pytest_asyncio.fixture(scope="session")
 async def mock_redis():
     """Mock Redis client to avoid actual Redis connections during tests."""
-    from app.core import dependencies as dependencies_module
+    from app.auth.infrastructure import composition as auth_composition_module
     from app.core import rate_limit as rate_limit_module
     from app.db import redis as redis_module
-    from app.services import auth_service as auth_service_module
 
     # Create a mock Redis client
     mock_client = AsyncMock()
@@ -210,8 +215,7 @@ async def mock_redis():
     patches = [
         patch.object(redis_module, "redis_client", mock_client),
         patch.object(rate_limit_module, "redis_client", mock_client),
-        patch.object(auth_service_module, "redis_client", mock_client),
-        patch.object(dependencies_module, "redis_client", mock_client),
+        patch.object(auth_composition_module, "redis_client", mock_client),
     ]
 
     # Start all patches
@@ -228,39 +232,35 @@ async def mock_redis():
 # ──────────── Mock JWT and RSA Keys ──────────── #
 @pytest_asyncio.fixture(scope="session")
 def mock_jwt():
-    """Mock RSA keys only — JWT encode/decode use real crypto in integration tests."""
+    """Inject test RSA keys into the key_pair singleton used by composition adapters.
 
+    Mutates app.core.keys.key_pair._private_key / ._public_key in place so that
+    JwtTokenIssuer and JwtTokenVerifier (which hold a reference to the same
+    singleton) sign and verify with real crypto but with test-only keys.
+    """
     from cryptography.hazmat.primitives.asymmetric import rsa
 
     from app.core import keys as keys_module
-    from app.core import security as security_module
 
-    # Create a real RSA key pair for testing purposes
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     public_key = private_key.public_key()
 
-    # Create a mock key pair that behaves like the real one
-    mock_key_pair = MagicMock()
-    mock_key_pair.private_key = private_key
-    mock_key_pair.public_key = public_key
+    original_private = keys_module.key_pair._private_key
+    original_public = keys_module.key_pair._public_key
 
-    # Patch key_pair in both security and keys modules (where it's used)
-    # Do NOT patch jwt.encode or jwt.decode — let them work with real crypto
-    patches = [
-        patch.object(security_module, "key_pair", mock_key_pair),
-        patch.object(keys_module, "key_pair", mock_key_pair),
-        # Also patch the class instantiation to return our mock
-        patch.object(keys_module, "RSAKeyPair", return_value=mock_key_pair),
-    ]
+    # Inject test keys into the singleton; composition adapters share this object
+    keys_module.key_pair._private_key = private_key
+    keys_module.key_pair._public_key = public_key
 
-    for p in patches:
-        p.start()
+    # Prevent lifespan from overwriting the test keys when it calls key_pair.load()
+    keys_module.key_pair.load = lambda *_args, **_kwargs: None
 
-    # Expose the mock key pair for test fixtures to use for token generation
-    yield mock_key_pair
+    yield types.SimpleNamespace(private_key=private_key, public_key=public_key)
 
-    for p in patches:
-        p.stop()
+    # Restore original state
+    keys_module.key_pair._private_key = original_private
+    keys_module.key_pair._public_key = original_public
+    del keys_module.key_pair.load  # remove instance attribute; restores class method
 
 
 # ──────────── HTTP client ──────────── #
@@ -278,14 +278,40 @@ async def client(override_get_db):
 # ──────────── Override Database Engine ──────────── #
 @pytest_asyncio.fixture(scope="session", autouse=True)
 def override_engine(engine):
-    """Override the production database engine with the test engine."""
-    original_engine = prod_async_engine
-    # Import here to avoid circular import issues
+    """Override the production engine AND session factory in all composition roots.
+
+    async_session_factory is an async_sessionmaker bound at import time to the
+    production engine. Simply swapping async_engine doesn't help — each
+    composition module holds its own reference to the factory object. We must
+    also replace that reference everywhere it was imported.
+    """
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    import app.audit.infrastructure.composition as audit_comp
+    import app.auth.infrastructure.composition as auth_comp
     import app.db.session as session_module
+    import app.rbac.infrastructure.composition as rbac_comp
+
+    test_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
+        engine, expire_on_commit=False
+    )
+
+    original_engine = session_module.async_engine
+    original_factory = session_module.async_session_factory
 
     session_module.async_engine = engine
+    session_module.async_session_factory = test_factory
+    auth_comp.async_session_factory = test_factory
+    rbac_comp.async_session_factory = test_factory
+    audit_comp.async_session_factory = test_factory
+
     yield
+
     session_module.async_engine = original_engine
+    session_module.async_session_factory = original_factory
+    auth_comp.async_session_factory = original_factory
+    rbac_comp.async_session_factory = original_factory
+    audit_comp.async_session_factory = original_factory
 
 
 # ──────────── Patch app.main and jwks module references ──────────── #
