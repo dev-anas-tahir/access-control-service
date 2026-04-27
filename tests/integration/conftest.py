@@ -118,6 +118,7 @@ async def admin_user(db):
     db.add(admin)
     await db.flush()
     await db.refresh(admin)
+    await db.commit()
     return admin
 
 
@@ -168,6 +169,7 @@ async def regular_user(db):
     db.add(user)
     await db.flush()
     await db.refresh(user)
+    await db.commit()
     return user
 
 
@@ -183,6 +185,7 @@ async def viewer_role(db):
         role = Role(name="viewer", description="Default viewer role", is_system=True)
         db.add(role)
         await db.flush()
+        await db.commit()
     return role
 
 
@@ -275,14 +278,40 @@ async def client(override_get_db):
 # ──────────── Override Database Engine ──────────── #
 @pytest_asyncio.fixture(scope="session", autouse=True)
 def override_engine(engine):
-    """Override the production database engine with the test engine."""
-    original_engine = prod_async_engine
-    # Import here to avoid circular import issues
+    """Override the production engine AND session factory in all composition roots.
+
+    async_session_factory is an async_sessionmaker bound at import time to the
+    production engine. Simply swapping async_engine doesn't help — each
+    composition module holds its own reference to the factory object. We must
+    also replace that reference everywhere it was imported.
+    """
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    import app.audit.infrastructure.composition as audit_comp
+    import app.auth.infrastructure.composition as auth_comp
     import app.db.session as session_module
+    import app.rbac.infrastructure.composition as rbac_comp
+
+    test_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
+        engine, expire_on_commit=False
+    )
+
+    original_engine = session_module.async_engine
+    original_factory = session_module.async_session_factory
 
     session_module.async_engine = engine
+    session_module.async_session_factory = test_factory
+    auth_comp.async_session_factory = test_factory
+    rbac_comp.async_session_factory = test_factory
+    audit_comp.async_session_factory = test_factory
+
     yield
+
     session_module.async_engine = original_engine
+    session_module.async_session_factory = original_factory
+    auth_comp.async_session_factory = original_factory
+    rbac_comp.async_session_factory = original_factory
+    audit_comp.async_session_factory = original_factory
 
 
 # ──────────── Patch app.main and jwks module references ──────────── #
