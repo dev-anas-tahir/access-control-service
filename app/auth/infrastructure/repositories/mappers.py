@@ -19,6 +19,12 @@ def _role_orm_to_domain(orm: RoleORM) -> Role:
     return Role(
         id=orm.id,
         name=orm.name,
+        description=orm.description,
+        is_system=orm.is_system,
+        created_by=orm.created_by,
+        is_deleted=orm.is_deleted,
+        deleted_at=orm.deleted_at,
+        created_at=orm.created_at,
         permissions=[_permission_orm_to_domain(p) for p in orm.permissions],
     )
 

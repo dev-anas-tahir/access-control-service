@@ -24,10 +24,13 @@ from fastapi import APIRouter, FastAPI
 # from google.api_core.exceptions import NotFound
 from sqlalchemy import text
 
-from app.api.v1 import admin, jwks
+from app.api.v1 import jwks
+from app.audit.infrastructure.http import routes as audit_routes
 from app.auth.infrastructure.http import routes as auth_routes
 from app.auth.infrastructure.http.exception_mapper import register_auth_exception_handlers
 from app.config import settings
+from app.rbac.infrastructure.http import routes as rbac_routes
+from app.rbac.infrastructure.http.exception_mapper import register_rbac_exception_handlers
 from app.core.keys import key_pair
 from app.core.logging import setup_logging
 from app.core.middleware import RequestResponseMiddleware
@@ -142,8 +145,9 @@ app = FastAPI(
 # Add request ID middleware
 app.add_middleware(RequestResponseMiddleware)
 
-# Register auth domain exception → HTTP response mappings
+# Register domain exception → HTTP response mappings
 register_auth_exception_handlers(app)
+register_rbac_exception_handlers(app)
 
 # ──────────── JWKS at root ──────────── #
 app.include_router(jwks.router)
@@ -151,7 +155,8 @@ app.include_router(jwks.router)
 # ──────────── API v1 ──────────── #
 api_v1 = APIRouter(prefix="/api/v1")
 api_v1.include_router(auth_routes.router)
-api_v1.include_router(admin.router)
+api_v1.include_router(rbac_routes.router)
+api_v1.include_router(audit_routes.router)
 app.include_router(api_v1)
 
 # ──────────── API v2 (future) ──────────── #
