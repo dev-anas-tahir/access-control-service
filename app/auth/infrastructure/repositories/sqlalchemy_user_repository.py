@@ -61,7 +61,10 @@ class SqlAlchemyUserRepository:
             self._session.add(assoc)
 
         await self._session.flush()
-        await self._session.refresh(orm, ["roles"])
+        result = await self._session.execute(
+            self._base_query().where(UserORM.id == orm.id)
+        )
+        orm = result.scalar_one()
         return user_orm_to_domain(orm)
 
     async def update(self, user: User) -> None:
