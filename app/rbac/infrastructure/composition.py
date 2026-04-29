@@ -1,4 +1,3 @@
-from app.db.session import async_session_factory
 from app.rbac.application.use_cases.assign_permission import AssignPermissionUseCase
 from app.rbac.application.use_cases.assign_role_to_user import AssignRoleToUserUseCase
 from app.rbac.application.use_cases.create_role import CreateRoleUseCase
@@ -8,6 +7,7 @@ from app.rbac.application.use_cases.revoke_role_from_user import (
     RevokeRoleFromUserUseCase,
 )
 from app.rbac.infrastructure.unit_of_work import SqlAlchemyRbacUnitOfWork
+from app.shared.infrastructure.db.session import async_session_factory
 
 
 def _uow_factory() -> SqlAlchemyRbacUnitOfWork:
