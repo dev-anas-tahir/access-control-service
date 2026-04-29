@@ -21,8 +21,11 @@ from app.auth.infrastructure.http.schemas import (
     make_refresh_input,
 )
 from app.config import settings
-from app.core.rate_limit import rate_limit_by_ip, rate_limit_by_username
 from app.core.types import TokenPayload
+from app.shared.infrastructure.http.rate_limit import (
+    rate_limit_by_ip,
+    rate_limit_by_username,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

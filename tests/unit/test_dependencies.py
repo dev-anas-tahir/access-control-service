@@ -9,11 +9,13 @@ import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
-from app.auth.infrastructure.http.dependencies import get_current_user, require_super_user
+from app.auth.infrastructure.http.dependencies import (
+    get_current_user,
+    require_super_user,
+)
 from app.core.exceptions import InvalidTokenError
 from app.core.types import TokenPayload
 from tests.unit.auth.fakes import FakeRevocationStore, FakeTokenVerifier
-
 
 # ──────────────────────────────────────────────────────────────
 # get_current_user

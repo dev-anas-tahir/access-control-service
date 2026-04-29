@@ -6,7 +6,10 @@ from starlette.requests import Request
 
 
 async def test_ip_rate_limit_exceeded():
-    from app.core.rate_limit import IP_MAX_ATTEMPTS, rate_limit_by_ip
+    from app.shared.infrastructure.http.rate_limit import (
+        IP_MAX_ATTEMPTS,
+        rate_limit_by_ip,
+    )
 
     # Mock redis_client.incr to return IP_MAX_ATTEMPTS + 1
     mock_incr = AsyncMock(return_value=IP_MAX_ATTEMPTS + 1)
@@ -20,7 +23,7 @@ async def test_ip_rate_limit_exceeded():
     mock_request.url.path = "/test"
 
     # Patch the redis_client to use our mocks
-    with patch("app.core.rate_limit.redis_client") as mock_redis:
+    with patch("app.shared.infrastructure.http.rate_limit.redis_client") as mock_redis:
         mock_redis.incr = mock_incr
         mock_redis.expire = mock_expire
 
@@ -37,7 +40,10 @@ async def test_ip_rate_limit_exceeded():
 
 
 async def test_ip_rate_limit_with_no_client():
-    from app.core.rate_limit import IP_MAX_ATTEMPTS, rate_limit_by_ip
+    from app.shared.infrastructure.http.rate_limit import (
+        IP_MAX_ATTEMPTS,
+        rate_limit_by_ip,
+    )
 
     # Mock redis_client.incr to return less than the limit
     mock_incr = AsyncMock(return_value=IP_MAX_ATTEMPTS - 5)  # Below the limit
@@ -49,7 +55,7 @@ async def test_ip_rate_limit_with_no_client():
     mock_request.url.path = "/test"
 
     # Patch the redis_client to use our mocks
-    with patch("app.core.rate_limit.redis_client") as mock_redis:
+    with patch("app.shared.infrastructure.http.rate_limit.redis_client") as mock_redis:
         mock_redis.incr = mock_incr
         mock_redis.expire = mock_expire
 
@@ -61,7 +67,10 @@ async def test_ip_rate_limit_with_no_client():
 
 
 async def test_username_rate_limit_exceeded():
-    from app.core.rate_limit import USERNAME_MAX_ATTEMPTS, rate_limit_by_username
+    from app.shared.infrastructure.http.rate_limit import (
+        USERNAME_MAX_ATTEMPTS,
+        rate_limit_by_username,
+    )
 
     # Mock redis_client.incr to return USERNAME_MAX_ATTEMPTS + 1
     mock_incr = AsyncMock(return_value=USERNAME_MAX_ATTEMPTS + 1)
@@ -73,7 +82,7 @@ async def test_username_rate_limit_exceeded():
     mock_request.url.path = "/login"
 
     # Patch the redis_client to use our mocks
-    with patch("app.core.rate_limit.redis_client") as mock_redis:
+    with patch("app.shared.infrastructure.http.rate_limit.redis_client") as mock_redis:
         mock_redis.incr = mock_incr
         mock_redis.expire = mock_expire
 
@@ -90,7 +99,10 @@ async def test_username_rate_limit_exceeded():
 
 
 async def test_username_rate_limit_not_exceeded():
-    from app.core.rate_limit import USERNAME_MAX_ATTEMPTS, rate_limit_by_username
+    from app.shared.infrastructure.http.rate_limit import (
+        USERNAME_MAX_ATTEMPTS,
+        rate_limit_by_username,
+    )
 
     # Mock redis_client.incr to return less than the limit
     mock_incr = AsyncMock(return_value=USERNAME_MAX_ATTEMPTS - 5)  # Below the limit
@@ -102,7 +114,7 @@ async def test_username_rate_limit_not_exceeded():
     mock_request.url.path = "/login"
 
     # Patch the redis_client to use our mocks
-    with patch("app.core.rate_limit.redis_client") as mock_redis:
+    with patch("app.shared.infrastructure.http.rate_limit.redis_client") as mock_redis:
         mock_redis.incr = mock_incr
         mock_redis.expire = mock_expire
 
@@ -114,7 +126,7 @@ async def test_username_rate_limit_not_exceeded():
 
 
 async def test_ip_rate_limit_with_empty_host():
-    from app.core.rate_limit import rate_limit_by_ip
+    from app.shared.infrastructure.http.rate_limit import rate_limit_by_ip
 
     # Create a mock Request with empty host
     mock_client = AsyncMock()
@@ -124,7 +136,7 @@ async def test_ip_rate_limit_with_empty_host():
     mock_request.url.path = "/test"
 
     # Patch the redis_client to ensure it's not called
-    with patch("app.core.rate_limit.redis_client") as mock_redis:
+    with patch("app.shared.infrastructure.http.rate_limit.redis_client") as mock_redis:
         # Call rate_limit_by_ip - should not raise an exception and not call redis
         await rate_limit_by_ip(mock_request)
 
@@ -134,7 +146,10 @@ async def test_ip_rate_limit_with_empty_host():
 
 
 async def test_ip_rate_limit_not_exceeded():
-    from app.core.rate_limit import IP_MAX_ATTEMPTS, rate_limit_by_ip
+    from app.shared.infrastructure.http.rate_limit import (
+        IP_MAX_ATTEMPTS,
+        rate_limit_by_ip,
+    )
 
     # Mock redis_client.incr to return less than the limit
     mock_incr = AsyncMock(return_value=IP_MAX_ATTEMPTS - 5)  # Below the limit
@@ -148,7 +163,7 @@ async def test_ip_rate_limit_not_exceeded():
     mock_request.url.path = "/test"
 
     # Patch the redis_client to use our mocks
-    with patch("app.core.rate_limit.redis_client") as mock_redis:
+    with patch("app.shared.infrastructure.http.rate_limit.redis_client") as mock_redis:
         mock_redis.incr = mock_incr
         mock_redis.expire = mock_expire
 

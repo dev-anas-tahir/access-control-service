@@ -2,7 +2,7 @@ import json
 
 from fastapi import HTTPException, Request, status
 
-from app.db.redis import redis_client
+from app.shared.infrastructure.cache.redis import redis_client
 
 # Config
 IP_MAX_ATTEMPTS = 20  # per 60 seconds
