@@ -2,7 +2,12 @@
 
 ## Overview
 
-The Access Control Service follows a layered architecture with clear separation of concerns:
+The Access Control Service follows a **hexagonal (ports & adapters) architecture** with clear separation of concerns:
+
+- **Domain Layer**: Pure Python with no external dependencies (no SQLAlchemy, FastAPI, Redis, PyJWT)
+- **Application Layer**: Use cases that depend only on `typing.Protocol` ports
+- **Infrastructure Layer**: Adapters (SQLAlchemy repos, Redis stores, FastAPI routes, JWT crypto)
+- Each bounded context (`auth`, `rbac`, `audit`) is self-contained with its own `domain/`, `application/`, `infrastructure/` subtree
 
 ```mermaid
 flowchart TB
@@ -13,58 +18,52 @@ flowchart TB
         JWKS[.well-known/jwks]
     end
 
-    subgraph SVC["Service Layer"]
+    subgraph APP["Application Layer (Use Cases)"]
         direction LR
-        AUTHSVC[AuthService<br/>- signup<br/>- login<br/>- refresh<br/>- logout]
-        RBACSVC[RBACService<br/>- create_role<br/>- delete_role<br/>- assign_permission<br/>- revoke_permission<br/>- assign_role_to_user<br/>- revoke_role_from_user<br/>- get_audit_logs]
+        AUTHUC[Auth Use Cases<br/>- signup<br/>- login<br/>- refresh<br/>- logout]
+        RBACUC[RBAC Use Cases<br/>- create_role<br/>- delete_role<br/>- assign_permission<br/>- revoke_permission<br/>- assign_role_to_user<br/>- revoke_role_from_user]
+        AUDITUC[Audit Use Cases<br/>- get_audit_logs]
     end
 
-    subgraph DATA["Data Layer (SQLAlchemy)"]
+    subgraph DOM["Domain Layer (Ports & Entities)"]
         direction LR
-        USER[User]
-        ROLE[Role]
-        PERM[Permission]
-        AUDIT[AuditLog]
-        ASSOC[Association Tables<br/>user_roles<br/>role_permissions]
+        PORTS[Repository Ports<br/>Unit of Work Port]
+        ENT[Domain Entities<br/>Role, Permission, User]
+        EVT[Domain Events<br/>RoleCreated, PermissionGranted]
+    end
+
+    subgraph INFRA["Infrastructure Layer (Adapters)"]
+        direction LR
+        REPOS[SQLAlchemy Repositories]
+        UOW[Unit of Work]
+        REDIS[Redis Stores]
+        JWT[JWT Adapters]
     end
 
     subgraph EXT["External Services"]
         direction LR
         PG[PostgreSQL Cloud SQL]
-        REDIS[Redis Memorystore]
-        PUBSUB[GCP PubSub Activity Log]
+        REDIS_SVC[Redis Memorystore]
+        PUBSUB[GCP Pub/Sub]
     end
 
-    API --> SVC
-    SVC --> DATA
-    DATA --> EXT
+    API --> APP
+    APP --> DOM
+    APP --> INFRA
+    INFRA --> EXT
 
     style API fill:#1e3a5f,stroke:#4fc3f7,color:#ffffff
-    style SVC fill:#4a148c,stroke:#ce93d8,color:#ffffff
-    style DATA fill:#1b5e20,stroke:#81c784,color:#ffffff
-    style EXT fill:#e65100,stroke:#ffcc80,color:#ffffff
-    style AUTH fill:#1565c0,stroke:#4fc3f7,color:#ffffff
-    style ADMIN fill:#1565c0,stroke:#4fc3f7,color:#ffffff
-    style JWKS fill:#1565c0,stroke:#4fc3f7,color:#ffffff
-    style AUTHSVC fill:#6a1b9a,stroke:#ce93d8,color:#ffffff
-    style RBACSVC fill:#6a1b9a,stroke:#ce93d8,color:#ffffff
-    style USER fill:#2e7d32,stroke:#81c784,color:#ffffff
-    style ROLE fill:#2e7d32,stroke:#81c784,color:#ffffff
-    style PERM fill:#2e7d32,stroke:#81c784,color:#ffffff
-    style AUDIT fill:#2e7d32,stroke:#81c784,color:#ffffff
-    style ASSOC fill:#2e7d32,stroke:#81c784,color:#ffffff
-    style PG fill:#ef6c00,stroke:#ffcc80,color:#ffffff
-    style REDIS fill:#ef6c00,stroke:#ffcc80,color:#ffffff
-    style PUBSUB fill:#ef6c00,stroke:#ffcc80,color:#ffffff
+    style APP fill:#4a148c,stroke:#ce93d8,color:#ffffff
+    style DOM fill:#1b5e20,stroke:#81c784,color:#ffffff
+    style INFRA fill:#e65100,stroke:#ffcc80,color:#ffffff
+    style EXT fill:#37474f,stroke:#b0bec5,color:#ffffff
 ```
 
 ## Layer Responsibilities
 
-### API Layer (`app/api/v1/`)
+### API Layer (`app/*/infrastructure/http/`)
 
-- **File**: `auth.py` - Authentication endpoints
-- **File**: `admin.py` - RBAC administrative endpoints
-- **File**: `jwks.py` - JWKS endpoint for key discovery
+- **Files**: `auth/routes.py`, `rbac/routes.py`, `auth/jwks.py`
 
 **Responsibilities:**
 - HTTP request/response handling
@@ -72,61 +71,49 @@ flowchart TB
 - Dependency injection (current user, super user checks)
 - Rate limiting (applied as dependencies)
 - Setting response headers and cookies
-- Mapping service exceptions to HTTP status codes
+- Mapping domain exceptions to HTTP status codes
 
-### Service Layer (`app/services/`)
+### Application Layer (`app/*/application/`)
 
-- **File**: `auth_service.py` - `AuthService` class
-- **File**: `rbac_service.py` - `RBACService` class
-
-**Responsibilities:**
-- Business logic implementation
-- Database operations via SQLAlchemy
-- Transaction management (commit responsibility typically on caller)
-- Audit log creation for mutating operations
-- Password hashing and verification
-- JWT generation and validation
-- Redis operations (refresh tokens, revocation)
-- Domain-specific exception raising
-
-### Data Layer (`app/models/`)
-
-- **Files**: `user.py`, `role.py`, `association.py`, `audit_log.py`, `base.py`
+- **Files**: `auth/application/use_cases/`, `rbac/application/use_cases/`, `audit/application/use_cases/`
 
 **Responsibilities:**
-- ORM model definitions with SQLAlchemy
-- Table constraints (unique, foreign keys, indexes)
-- Relationship definitions (many-to-many, one-to-many)
-- Mixin inheritance for timestamps and soft deletes
-- Database-agnostic schema definitions
+- Business logic implementation (use cases)
+- Orchestrating domain entities and repositories
+- Transaction management via Unit of Work
+- Emitting domain events (RBAC use cases emit events, UoW dispatches after commit)
+- DTO (Data Transfer Object) definitions for inputs/outputs
 
-### Core Utilities (`app/core/`)
+### Domain Layer (`app/*/domain/` and `app/shared/domain/`)
+
+- **Files**: `entities/`, `ports/`, `events.py`, `exceptions.py`, `values/`
+
+**Responsibilities:**
+- Domain entity definitions (Role, Permission, User)
+- Value objects (Email, ScopeKey)
+- Domain events (RoleCreated, PermissionGranted, etc.)
+- Repository ports (Protocol interfaces)
+- Domain-specific exceptions
+- Pure business logic with no external dependencies
+
+### Infrastructure Layer (`app/*/infrastructure/` and `app/shared/infrastructure/`)
 
 - **Files**:
-  - `security.py` - JWT operations, password hashing
-  - `dependencies.py` - FastAPI dependencies (auth, super user)
-  - `keys.py` - RSA key pair singleton
-  - `rate_limit.py` - IP and username rate limiting
-  - `loggin` - Structured JSON logging
-  - `middleware.py` - Request ID middleware
+  - `repositories/` - SQLAlchemy repository implementations
+  - `unit_of_work.py` - UoW implementation with event dispatching
+  - `http/routes.py` - FastAPI route handlers
+  - `crypto/` - JWT, password hashing
+  - `db/session.py` - Database session management
+  - `cache/redis.py` - Redis client
+  - `events/` - Event dispatcher and audit logging handler
 
 **Responsibilities:**
-- Cryptographic operations
-- Dependency injection providers
-- Singleton resource management
-- Rate limiting algorithms
-- Cross-cutting concerns (logging, request tracing)
-
-### Database Layer (`app/db/`)
-
-- **Files**: `session.py`, `redis.py`, `pubsub.py`
-
-**Responsibilities:**
-- Async PostgreSQL engine and session factory
-- Redis client singleton
-- GCP Pub/Sub client lazy initialization
-- Connection lifecycle management
-- Test database overrides
+- Repository implementations (SQLAlchemy)
+- Unit of Work with event dispatching
+- HTTP route handlers (FastAPI)
+- Cryptographic operations (JWT, bcrypt)
+- External service integrations (PostgreSQL, Redis, Pub/Sub)
+- Cross-cutting infrastructure concerns
 
 ## Component Diagram
 
@@ -524,8 +511,9 @@ All dependencies managed by `uv` with locked versions in `uv.lock`.
 
 - `app/main.py` - Application factory and lifespan
 - `app/config.py` - Configuration definitions
-- `app/api/v1/` - API endpoint implementations
-- `app/services/` - Business logic
-- `app/models/` - Data models
-- `app/core/` - Security and utilities
-- `app/db/` - Database and external service connections
+- `app/auth/` - Authentication bounded context (domain, application, infrastructure)
+- `app/rbac/` - RBAC bounded context (domain, application, infrastructure)
+- `app/audit/` - Audit bounded context (domain, infrastructure)
+- `app/shared/domain/` - Shared domain primitives (entities, events, ports, values)
+- `app/shared/infrastructure/` - Shared infrastructure (db, cache, crypto, events, http)
+- `tests/unit/rbac/` - RBAC use case unit tests with fakes

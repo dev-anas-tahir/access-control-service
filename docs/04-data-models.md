@@ -1,5 +1,14 @@
 # Data Models & Database
 
+## Overview
+
+In the hexagonal architecture, there is a clear separation between:
+
+- **Domain Entities** (`app/shared/domain/entities/`): Pure Python dataclasses representing business concepts (Role, Permission, User). These have no dependencies on SQLAlchemy or any infrastructure concerns.
+- **ORM Models** (`app/*/infrastructure/orm/`): SQLAlchemy declarative models that map to database tables. These are infrastructure concerns.
+
+The repository pattern bridges these two worlds: repositories accept and return domain entities, while internally using ORM models for persistence.
+
 ## Entity Relationship Diagram
 
 ```mermaid
@@ -108,7 +117,7 @@ Primary table storing user credentials and profile.
 
 **Soft Delete**: Deleted users remain in DB but are filtered by `is_deleted=False` in queries. The application code must manually apply this filter (not automatic via SQLAlchemy event).
 
-**Mixins**: Inherits `TimestampMixin`, `SoftDeleteMixin` (`app/models/base.py`)
+**Mixins**: Inherits `TimestampMixin`, `SoftDeleteMixin` (`app/shared/infrastructure/db/base.py`)
 
 ---
 
@@ -188,7 +197,7 @@ Association table linking users to roles (many-to-many).
 
 **Indexes**: PK automatically indexes both columns
 
-**File**: `app/models/association.py:1-39`
+**File**: `app/rbac/infrastructure/orm/association.py`
 
 ---
 
@@ -214,7 +223,7 @@ Association table linking roles to permissions (many-to-many).
 
 **Indexes**: PK covers both columns
 
-**File**: `app/models/association.py:40-55`
+**File**: `app/rbac/infrastructure/orm/association.py`
 
 ---
 
@@ -249,7 +258,7 @@ Immutable audit trail for RBAC operations.
 
 **Mixins**: None (only `created_at` is present)
 
-**File**: `app/models/audit_log.py:1-32`
+**File**: `app/audit/infrastructure/orm/audit_log.py`
 
 ---
 
@@ -400,7 +409,7 @@ Note: SQLAlchemy migrations may automatically create some indexes based on relat
 
 ## Database Connections
 
-### Connection Pool Configuration (`app/db/session.py`)
+### Connection Pool Configuration (`app/shared/infrastructure/db/session.py`)
 
 ```python
 async_engine = create_async_engine(
@@ -436,7 +445,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 ```
 
 **Key Points**:
-- `expire_on_commit=False` prevents `DetachedInstanceError` after commit (`app/db/session.py:33`)
+- `expire_on_commit=False` prevents `DetachedInstanceError` after commit (`app/shared/infrastructure/db/session.py`)
 - Session auto-closes via context manager
 - All route handlers must consume this dependency to get DB session
 
@@ -446,16 +455,16 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 ### Eager Loading to Avoid N+1
 
-The service layer uses `selectinload()` for relationships:
+Repositories use `selectinload()` for relationships to avoid N+1 queries:
 
 ```python
-# Load user with roles and permissions (auth_service.login)
+# Load user with roles and permissions (in UserRepository)
 stmt = (
-    select(User)
+    select(UserORM)
     .options(
-        selectinload(User.roles).selectinload(Role.permissions)
+        selectinload(UserORM.roles).selectinload(RoleORM.permissions)
     )
-    .where(User.username == data.username, User.is_deleted == False)
+    .where(UserORM.username == username, UserORM.is_deleted == False)
 )
 ```
 
@@ -469,7 +478,13 @@ This generates two additional queries:
 
 ## References
 
-- Models: `app/models/user.py`, `app/models/role.py`, `app/models/association.py`, `app/models/audit_log.py`, `app/models/base.py`
-- Database session: `app/db/session.py`
+- ORM Models:
+  - `app/auth/infrastructure/orm/user.py`
+  - `app/rbac/infrastructure/orm/role.py`
+  - `app/rbac/infrastructure/orm/association.py`
+  - `app/audit/infrastructure/orm/audit_log.py`
+  - `app/shared/infrastructure/db/base.py`
+- Domain Entities: `app/shared/domain/entities/`
+- Database session: `app/shared/infrastructure/db/session.py`
 - Migrations: `alembic/`
-- Schema usage: `app/services/auth_service.py`, `app/services/rbac_service.py`
+- Use cases: `app/auth/application/use_cases/`, `app/rbac/application/use_cases/`
