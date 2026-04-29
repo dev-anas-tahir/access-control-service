@@ -24,9 +24,9 @@ from fastapi import APIRouter, FastAPI
 # from google.api_core.exceptions import NotFound
 from sqlalchemy import text
 
-from app.api.v1 import jwks
 from app.audit.infrastructure.http import routes as audit_routes
 from app.auth.infrastructure.crypto.key_pair import key_pair
+from app.auth.infrastructure.http import jwks
 from app.auth.infrastructure.http import routes as auth_routes
 from app.auth.infrastructure.http.exception_mapper import (
     register_auth_exception_handlers,

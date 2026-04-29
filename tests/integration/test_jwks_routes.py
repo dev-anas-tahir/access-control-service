@@ -85,7 +85,7 @@ async def test_jwks_endpoint_base64url_encoding(client: AsyncClient):
 async def test_jwks_endpoint_error_handling(client: AsyncClient):
     """Test that the JWKS endpoint handles errors gracefully."""
     # Mock the key_pair to simulate an error
-    with patch("app.api.v1.jwks.key_pair") as mock_key_pair:
+    with patch("app.auth.infrastructure.http.jwks.key_pair") as mock_key_pair:
         # Make public_key property raise an exception
         type(mock_key_pair).public_key = property(
             lambda self: (_ for _ in ()).throw(RuntimeError("Key error"))

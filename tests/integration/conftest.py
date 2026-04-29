@@ -331,7 +331,7 @@ def patch_app_main(mock_redis, mock_jwt, engine):
     mock_client = mock_redis
 
     # Import modules here to avoid circular import issues
-    import app.api.v1.jwks as jwks_module
+    import app.auth.infrastructure.http.jwks as jwks_module
     import app.main as main_module
 
     # Apply patches to app.main module and jwks module
