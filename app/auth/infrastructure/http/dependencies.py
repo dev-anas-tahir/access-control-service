@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.auth.domain.exceptions import InvalidTokenError, TokenExpiredError
 from app.auth.domain.ports.token_verifier import TokenPayload
 from app.auth.infrastructure.composition import get_revocation_store, get_token_verifier
 from app.auth.infrastructure.stores.redis_revocation_store import RedisRevocationStore
@@ -14,8 +15,6 @@ async def get_current_user(
     verifier: JwtTokenVerifier = Depends(get_token_verifier),
     revocation_store: RedisRevocationStore = Depends(get_revocation_store),
 ) -> TokenPayload:
-    from app.core.exceptions import InvalidTokenError, TokenExpiredError
-
     token = credentials.credentials
     try:
         payload = verifier.verify(token)
@@ -33,7 +32,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return payload  # type: ignore[return-value]
+    return payload
 
 
 async def require_super_user(

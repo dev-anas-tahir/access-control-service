@@ -1,8 +1,8 @@
 import jwt
 
+from app.auth.domain.exceptions import InvalidTokenError, TokenExpiredError
 from app.auth.domain.ports.token_verifier import TokenPayload
 from app.auth.infrastructure.crypto.key_pair import RSAKeyPair
-from app.core.exceptions import InvalidTokenError, TokenExpiredError
 
 
 class JwtTokenVerifier:

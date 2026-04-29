@@ -4,10 +4,11 @@ from fastapi.responses import JSONResponse
 from app.auth.domain.exceptions import (
     DefaultRoleMissingError,
     InvalidCredentialsError,
+    InvalidTokenError,
     RefreshTokenInvalidError,
+    TokenExpiredError,
     UserExistsError,
 )
-from app.core.exceptions import InvalidTokenError, TokenExpiredError
 
 
 def register_auth_exception_handlers(app: FastAPI) -> None:

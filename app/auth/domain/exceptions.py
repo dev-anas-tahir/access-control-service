@@ -22,3 +22,11 @@ class UserExistsError(DomainError):
     def __init__(self, field: Literal["username", "email"]) -> None:
         self.field = field
         super().__init__(f"{field.capitalize()} already exists")
+
+
+class TokenExpiredError(DomainError):
+    """Raised when a JWT token has expired."""
+
+
+class InvalidTokenError(DomainError):
+    """Raised when a JWT token is invalid or malformed."""
