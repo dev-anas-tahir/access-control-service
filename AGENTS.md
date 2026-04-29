@@ -27,50 +27,58 @@ It is part of a larger platform migrated from Django and deployed on GCP.
 
 ---
 
-## Project Structure
+## Project Structure (Hexagonal Architecture)
+
+The codebase follows **true hexagonal (ports & adapters) architecture**:
+
+- **Domain layer** = pure Python (no SQLAlchemy, no FastAPI, no Redis, no PyJWT)
+- **Application layer** = use cases that depend only on `typing.Protocol` ports
+- **Infrastructure layer** = adapters (SQLAlchemy repos, Redis stores, FastAPI routes, JWT crypto)
+- Each bounded context (`auth`, `rbac`, `audit`) is self-contained with its own `domain/`, `application/`, `infrastructure/` subtree
+
 ```
 app/
-├── core/
-│   ├── security.py        # RSA key loading, JWT encode/decode, bcrypt hashing
-│   ├── dependencies.py    # FastAPI dependency injection (DB, Redis, current user)
-│   ├── keys.py            # RSAKeyPair singleton object
-│   ├── rate_limit.py      # Rate limiting functons per ip and username
-│   └── types.py           # Custom types for the app i.e TokenPayload
-├── db/
-│   ├── pubsub.py          # GCP Pub/Sub publisher setup
-│   ├── redis.py           # Redis setup
-│   └── session.py         # DB connection and session
-├── schemas/               # Pydantic v2 request/response schemas
-    ├── auth.py            # Login , SignUp request and response schemas
-│   └── role.py            # Role/permission request and response schemas
-├── services/
-│   ├── auth_service.py    # Login, token issuance, refresh, lazy bcrypt migration
-│   └── rbac_service.py    # Role/permission assignment and checks
-├── api/v1/
-│   ├── auth.py            # /auth/* endpoints
-│   ├── jwks.py            # /.well-known/jwks.json
-│   └── admin.py           # /admin/* endpoints (roles, permissions, user management)
-├── models/
-│   ├── association.py
-│   ├── audit_log.py
-│   └── base.py 
-│   └── role.py
-│   └── user.py
-├── config.py              # Settings via pydantic-settings
-└── main.py                # App factory, lifespan, router registration
+├── auth/                    # Authentication bounded context
+│   ├── domain/              # Entities, ports (protocols), exceptions
+│   ├── application/         # Use cases (DTOs + execute methods)
+│   └── infrastructure/      # SQLAlchemy repos, Redis stores, JWT adapters, FastAPI routes
+├── rbac/                    # RBAC bounded context
+│   ├── domain/              # Domain events, exceptions, ports
+│   │   └── events.py        # RoleCreated, RoleDeleted, PermissionGranted, etc.
+│   ├── application/         # Use cases: create_role, delete_role, assign_permission, etc.
+│   └── infrastructure/      # Repositories, UoW, HTTP routes
+├── audit/                   # Audit logging bounded context
+│   ├── domain/              # Ports
+│   └── infrastructure/      # SQLAlchemy audit logger
+├── shared/                  # Cross-cutting concerns
+│   ├── domain/              # Shared domain primitives
+│   │   ├── entities/        # Role, Permission entities
+│   │   ├── events.py        # DomainEvent base class, EventDispatcher protocol
+│   │   ├── ports/           # AuditLogger protocol
+│   │   └── values/          # Email, ScopeKey value objects
+│   └── infrastructure/      # Shared infrastructure
+│       ├── cache/           # Redis client
+│       ├── crypto/          # JWT, password hashing
+│       ├── db/              # SQLAlchemy session, base
+│       ├── events/          # SimpleEventDispatcher, AuditLoggingHandler
+│       └── http/            # Rate limiting middleware
+├── main.py                  # App factory, lifespan, router registration
+└── config.py                # Settings via pydantic-settings
 
 tests/
-├── conftest.py            # Shared fixtures: async DB session, Redis mock, test client
-├── unit/                  # Pure logic tests (no DB/network)
-│   ├── test_security.py
-│   └── test_rbac_service.py
-└── integration/           # Tests against a real async DB (test database)
+├── conftest.py              # Shared fixtures
+├── unit/                    # Pure logic tests (no DB/network)
+│   └── rbac/                # RBAC use case tests with FakeRbacUnitOfWork
+│       ├── fakes.py         # In-memory fakes for all ports
+│       └── test_*_use_case.py
+└── integration/             # Tests against real async DB
     ├── test_auth_routes.py
-    └── test_admin_routes.py
+    ├── test_admin_routes.py
+    └── test_jwks_routes.py
 
 keys/
-├── private.pem            # RSA private key — NEVER commit this
-└── public.pem             # RSA public key
+├── private.pem              # RSA private key — NEVER commit this
+└── public.pem               # RSA public key
 ```
 
 <!-- TODO: If your actual directory layout differs (e.g. events/ is named differently, or keys are loaded from GCP Secret Manager), update the tree above to match exactly. -->
@@ -174,6 +182,35 @@ PUBSUB_TOPIC_ACTIVITY=...
 - Raise `HTTPException` with explicit status codes and detail messages from route handlers.
 - Service layer raises domain-specific exceptions (e.g. `InvalidCredentialsError`); route layer maps them to `HTTPException`.
 - Never leak internal error details (stack traces, DB errors) to API responses.
+
+### Domain Events (RBAC → Audit Decoupling)
+RBAC use cases emit domain events instead of calling `audit_logger` directly. The Unit of Work collects events and dispatches them to audit logging after successful commit.
+
+**Event Types:**
+- `RoleCreated` — when a new role is created
+- `RoleDeleted` — when a role is soft-deleted
+- `PermissionGranted` — when a permission is assigned to a role
+- `PermissionRevoked` — when a permission is removed from a role
+- `UserRoleAssigned` — when a role is assigned to a user
+- `UserRoleRevoked` — when a role is revoked from a user
+
+**Usage in Use Cases:**
+```python
+from app.rbac.domain.events import RoleCreated
+
+# In use case execute method:
+uow.add_event(
+    RoleCreated(
+        actor_id=input.actor_id,
+        role_id=role.id,
+        name=role.name,
+        description=role.description,
+        is_system=role.is_system,
+    )
+)
+```
+
+The UoW processes events after commit, creating audit log entries. This decouples RBAC from the Audit context.
 
 ---
 
