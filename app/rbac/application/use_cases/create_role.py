@@ -1,4 +1,5 @@
 from app.rbac.application.dto import CreateRoleInput, CreateRoleResult
+from app.rbac.domain.events import RoleCreated
 from app.rbac.domain.exceptions import RoleAlreadyExistsError
 from app.rbac.domain.ports.unit_of_work import RbacUnitOfWorkFactory
 
@@ -18,12 +19,15 @@ class CreateRoleUseCase:
                 created_by=input.actor_id,
             )
 
-            await uow.audit_logger.log(
-                actor_id=input.actor_id,
-                action="ROLE_CREATED",
-                entity_type="Role",
-                entity_id=role.id,
-                payload={"name": role.name, "description": role.description},
+            # Emit domain event for audit logging (decoupled via UoW)
+            uow.add_event(
+                RoleCreated(
+                    actor_id=input.actor_id,
+                    role_id=role.id,
+                    name=role.name,
+                    description=role.description,
+                    is_system=role.is_system,
+                )
             )
 
             await uow.commit()

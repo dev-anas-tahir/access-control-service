@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.rbac.application.dto import DeleteRoleInput
+from app.rbac.domain.events import RoleDeleted
 from app.rbac.domain.exceptions import RoleNotFoundError
 from app.rbac.domain.ports.unit_of_work import RbacUnitOfWorkFactory
 
@@ -20,12 +21,13 @@ class DeleteRoleUseCase:
             now = datetime.now(timezone.utc)
             await uow.roles.mark_deleted(role.id, when=now)
 
-            await uow.audit_logger.log(
-                actor_id=input.actor_id,
-                action="ROLE_DELETED",
-                entity_type="Role",
-                entity_id=role.id,
-                payload={"name": role.name},
+            # Emit domain event for audit logging (decoupled via UoW)
+            uow.add_event(
+                RoleDeleted(
+                    actor_id=input.actor_id,
+                    role_id=role.id,
+                    name=role.name,
+                )
             )
 
             await uow.commit()

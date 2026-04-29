@@ -11,7 +11,8 @@ from app.shared.infrastructure.db.session import async_session_factory
 
 
 def _uow_factory() -> SqlAlchemyRbacUnitOfWork:
-    return SqlAlchemyRbacUnitOfWork(async_session_factory)
+    """Factory for creating UoW instances with domain event support."""
+    return SqlAlchemyRbacUnitOfWork(session_factory=async_session_factory)
 
 
 def get_create_role_use_case() -> CreateRoleUseCase:

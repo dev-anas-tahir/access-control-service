@@ -1,4 +1,5 @@
 from app.rbac.application.dto import AssignPermissionInput, AssignPermissionResult
+from app.rbac.domain.events import PermissionGranted
 from app.rbac.domain.exceptions import (
     PermissionAlreadyAssignedError,
     RoleNotFoundError,
@@ -31,12 +32,15 @@ class AssignPermissionUseCase:
                 granted_by=input.actor_id,
             )
 
-            await uow.audit_logger.log(
-                actor_id=input.actor_id,
-                action="PERMISSION_GRANTED",
-                entity_type="Role",
-                entity_id=role.id,
-                payload={"scope_key": scope_key.key, "role_name": role.name},
+            # Emit domain event for audit logging (decoupled via UoW)
+            uow.add_event(
+                PermissionGranted(
+                    actor_id=input.actor_id,
+                    role_id=role.id,
+                    role_name=role.name,
+                    permission_id=permission.id,
+                    scope_key=scope_key.key,
+                )
             )
 
             await uow.commit()

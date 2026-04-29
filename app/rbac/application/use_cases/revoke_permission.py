@@ -1,4 +1,5 @@
 from app.rbac.application.dto import RevokePermissionInput
+from app.rbac.domain.events import PermissionRevoked
 from app.rbac.domain.exceptions import (
     PermissionNotFoundError,
     RoleNotFoundError,
@@ -26,12 +27,15 @@ class RevokePermissionUseCase:
                 role_id=role.id, permission_id=permission.id
             )
 
-            await uow.audit_logger.log(
-                actor_id=input.actor_id,
-                action="PERMISSION_REVOKED",
-                entity_type="Role",
-                entity_id=role.id,
-                payload={"scope_key": scope_key.key, "role_name": role.name},
+            # Emit domain event for audit logging (decoupled via UoW)
+            uow.add_event(
+                PermissionRevoked(
+                    actor_id=input.actor_id,
+                    role_id=role.id,
+                    role_name=role.name,
+                    permission_id=permission.id,
+                    scope_key=scope_key.key,
+                )
             )
 
             await uow.commit()

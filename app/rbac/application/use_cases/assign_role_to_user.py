@@ -2,6 +2,7 @@ from app.rbac.application.dto import (
     AssignRoleToUserInput,
     AssignRoleToUserResult,
 )
+from app.rbac.domain.events import UserRoleAssigned
 from app.rbac.domain.exceptions import RoleNotFoundError, UserNotFoundError
 from app.rbac.domain.ports.unit_of_work import RbacUnitOfWorkFactory
 
@@ -26,12 +27,15 @@ class AssignRoleToUserUseCase:
                 user_id=user.id, role_id=role.id, assigned_by=input.actor_id
             )
 
-            await uow.audit_logger.log(
-                actor_id=input.actor_id,
-                action="USER_ROLE_ASSIGNED",
-                entity_type="UserRole",
-                entity_id=user.id,
-                payload={"user": user.username, "role": role.name},
+            # Emit domain event for audit logging (decoupled via UoW)
+            uow.add_event(
+                UserRoleAssigned(
+                    actor_id=input.actor_id,
+                    user_id=user.id,
+                    user_name=user.username,
+                    role_id=role.id,
+                    role_name=role.name,
+                )
             )
 
             await uow.commit()
