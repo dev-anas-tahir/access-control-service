@@ -30,7 +30,7 @@ class RefreshTokenUseCase:
 
         async with self._uow_factory() as uow:
             user = await uow.users.find_by_id(user_id)
-            if not user or not user.is_active:
+            if not user or not user.is_authenticatable():
                 raise InvalidCredentialsError()
 
             access_token = self._token_issuer.issue(

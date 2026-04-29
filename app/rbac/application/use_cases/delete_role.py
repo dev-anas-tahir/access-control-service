@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from app.rbac.application.dto import DeleteRoleInput
-from app.rbac.domain.exceptions import RoleNotFoundError, SystemRoleProtectedError
+from app.rbac.domain.exceptions import RoleNotFoundError
 from app.rbac.domain.ports.unit_of_work import RbacUnitOfWorkFactory
 
 
@@ -14,8 +14,8 @@ class DeleteRoleUseCase:
             role = await uow.roles.find_by_id(input.role_id)
             if not role:
                 raise RoleNotFoundError()
-            if role.is_system:
-                raise SystemRoleProtectedError()
+
+            role.assert_deletable()
 
             now = datetime.now(timezone.utc)
             await uow.roles.mark_deleted(role.id, when=now)

@@ -6,9 +6,9 @@ from app.rbac.domain.exceptions import (
     PermissionNotFoundError,
     RoleAlreadyExistsError,
     RoleNotFoundError,
-    SystemRoleProtectedError,
     UserNotFoundError,
 )
+from app.shared.domain.exceptions import SystemRoleProtectedError
 
 
 def register_rbac_exception_handlers(app: FastAPI) -> None:

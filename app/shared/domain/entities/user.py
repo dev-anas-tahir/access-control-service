@@ -17,3 +17,12 @@ class User:
     organization_id: uuid.UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    def is_authenticatable(self) -> bool:
+        """Whether this user is allowed to authenticate (login or refresh).
+
+        Returned as a query rather than an assert so the use case can map
+        any failure to InvalidCredentialsError without leaking *why* the
+        user was rejected (existence, inactive, etc.).
+        """
+        return self.is_active

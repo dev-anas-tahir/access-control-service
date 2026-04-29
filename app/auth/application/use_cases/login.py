@@ -29,7 +29,7 @@ class LoginUseCase:
     async def execute(self, input: LoginInput) -> LoginResult:
         async with self._uow_factory() as uow:
             user = await uow.users.find_by_username(input.username)
-            if not user or not user.is_active:
+            if not user or not user.is_authenticatable():
                 raise InvalidCredentialsError()
 
             if not self._hasher.verify(input.password, user.password_hash):

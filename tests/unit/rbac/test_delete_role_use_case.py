@@ -4,7 +4,8 @@ import pytest
 
 from app.rbac.application.dto import DeleteRoleInput
 from app.rbac.application.use_cases.delete_role import DeleteRoleUseCase
-from app.rbac.domain.exceptions import RoleNotFoundError, SystemRoleProtectedError
+from app.rbac.domain.exceptions import RoleNotFoundError
+from app.shared.domain.exceptions import SystemRoleProtectedError
 from tests.unit.rbac.fakes import FakeRbacUnitOfWork, FakeRoleRepository, make_role
 
 

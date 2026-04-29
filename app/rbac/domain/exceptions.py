@@ -11,11 +11,6 @@ class RoleNotFoundError(DomainError):
         super().__init__("Role not found")
 
 
-class SystemRoleProtectedError(DomainError):
-    def __init__(self) -> None:
-        super().__init__("Cannot delete system role")
-
-
 class PermissionAlreadyAssignedError(DomainError):
     def __init__(self) -> None:
         super().__init__("Permission already assigned")
