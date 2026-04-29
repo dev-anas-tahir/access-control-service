@@ -39,7 +39,7 @@ class RefreshTokenUseCase:
                     username=user.username,
                     roles=[role.name for role in user.roles],
                     permissions=[
-                        perm.scope_key
+                        perm.scope_key.key
                         for role in user.roles
                         for perm in role.permissions
                     ],

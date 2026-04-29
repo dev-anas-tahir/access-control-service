@@ -4,14 +4,14 @@ from app.rbac.infrastructure.orm.role import Role as RoleORM
 from app.shared.domain.entities.permission import Permission
 from app.shared.domain.entities.role import Role
 from app.shared.domain.entities.user import User
+from app.shared.domain.values.email import Email
+from app.shared.domain.values.scope_key import ScopeKey
 
 
 def _permission_orm_to_domain(orm: PermissionORM) -> Permission:
     return Permission(
         id=orm.id,
-        scope_key=orm.scope_key,
-        resource=orm.resource,
-        action=orm.action,
+        scope_key=ScopeKey(resource=orm.resource, action=orm.action),
     )
 
 
@@ -33,7 +33,7 @@ def user_orm_to_domain(orm: UserORM) -> User:
     return User(
         id=orm.id,
         username=orm.username,
-        email=orm.email,
+        email=Email(orm.email) if orm.email else None,
         password_hash=orm.password_hash,
         is_active=orm.is_active,
         is_super_user=orm.is_super_user,
@@ -47,7 +47,7 @@ def user_orm_to_domain(orm: UserORM) -> User:
 def apply_domain_to_user_orm(domain: User, orm: UserORM) -> None:
     """Mutate an existing ORM instance with updated domain fields."""
     orm.username = domain.username
-    orm.email = domain.email
+    orm.email = domain.email.value if domain.email else None
     orm.password_hash = domain.password_hash
     orm.is_active = domain.is_active
     orm.is_super_user = domain.is_super_user

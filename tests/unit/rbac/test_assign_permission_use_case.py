@@ -5,6 +5,7 @@ import pytest
 from app.rbac.application.dto import AssignPermissionInput
 from app.rbac.application.use_cases.assign_permission import AssignPermissionUseCase
 from app.rbac.domain.exceptions import PermissionAlreadyAssignedError, RoleNotFoundError
+from app.shared.domain.values.scope_key import ScopeKey
 from tests.unit.rbac.fakes import (
     FakeAssignmentRepository,
     FakePermissionRepository,
@@ -34,7 +35,7 @@ async def test_assign_permission_creates_permission_and_assigns():
     )
 
     assert result.role_id == role.id
-    perm = await uow.permissions.find_by_scope_key("reports:read")
+    perm = await uow.permissions.find_by_scope_key(ScopeKey.parse("reports:read"))
     assert perm is not None
     assert await uow.assignments.role_has_permission(role.id, perm.id)
     assert uow.committed is True

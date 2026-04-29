@@ -8,6 +8,7 @@ from typing import Any
 from app.rbac.domain.ports.user_reader import UserSummary
 from app.shared.domain.entities.permission import Permission
 from app.shared.domain.entities.role import Role
+from app.shared.domain.values.scope_key import ScopeKey
 
 # ── Entity factories ──────────────────────────────────────────────────────────
 
@@ -17,9 +18,7 @@ def make_permission(
 ) -> Permission:
     return Permission(
         id=uuid.uuid4(),
-        scope_key=f"{resource}:{action}",
-        resource=resource,
-        action=action,
+        scope_key=ScopeKey(resource=resource, action=action),
     )
 
 
@@ -84,19 +83,15 @@ class FakeRoleRepository:
 class FakePermissionRepository:
     def __init__(self, permissions: list[Permission] | None = None) -> None:
         self._store: dict[str, Permission] = {
-            p.scope_key: p for p in (permissions or [])
+            p.scope_key.key: p for p in (permissions or [])
         }
 
-    async def find_by_scope_key(self, scope_key: str) -> Permission | None:
-        return self._store.get(scope_key)
+    async def find_by_scope_key(self, scope_key: ScopeKey) -> Permission | None:
+        return self._store.get(scope_key.key)
 
-    async def add(
-        self, *, resource: str, action: str, scope_key: str
-    ) -> Permission:
-        perm = Permission(
-            id=uuid.uuid4(), scope_key=scope_key, resource=resource, action=action
-        )
-        self._store[scope_key] = perm
+    async def add(self, scope_key: ScopeKey) -> Permission:
+        perm = Permission(id=uuid.uuid4(), scope_key=scope_key)
+        self._store[scope_key.key] = perm
         return perm
 
 

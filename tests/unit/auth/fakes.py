@@ -7,15 +7,15 @@ from app.auth.domain.ports.token_issuer import TokenClaims
 from app.shared.domain.entities.permission import Permission
 from app.shared.domain.entities.role import Role
 from app.shared.domain.entities.user import User
+from app.shared.domain.values.email import Email
+from app.shared.domain.values.scope_key import ScopeKey
 
 # ── Entity factories ──────────────────────────────────────────────────────────
 
 def make_permission(scope_key: str = "resource:read") -> Permission:
     return Permission(
         id=uuid.uuid4(),
-        scope_key=scope_key,
-        resource=scope_key.split(":")[0],
-        action=scope_key.split(":")[1] if ":" in scope_key else "read",
+        scope_key=ScopeKey.parse(scope_key),
     )
 
 
@@ -37,7 +37,7 @@ def make_user(
     return User(
         id=uuid.uuid4(),
         username=username,
-        email=email,
+        email=Email(email) if email else None,
         password_hash=password_hash,
         is_active=is_active,
         is_super_user=is_super_user,
@@ -55,7 +55,10 @@ class FakeUserRepository:
         return next((u for u in self._store.values() if u.username == username), None)
 
     async def find_by_email(self, email: str) -> User | None:
-        return next((u for u in self._store.values() if u.email == email), None)
+        return next(
+            (u for u in self._store.values() if u.email and u.email.value == email),
+            None,
+        )
 
     async def find_by_id(self, id: uuid.UUID) -> User | None:
         return self._store.get(id)
@@ -162,6 +165,7 @@ class FakeTokenVerifier:
             "sub": str(uuid.uuid4()),
             "jti": str(uuid.uuid4()),
             "exp": 9999999999,
+            "iat": 0,
             "iss": "test",
             "username": "testuser",
             "roles": [],

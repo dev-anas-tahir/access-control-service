@@ -4,6 +4,7 @@ from app.rbac.domain.exceptions import (
     RoleNotFoundError,
 )
 from app.rbac.domain.ports.unit_of_work import RbacUnitOfWorkFactory
+from app.shared.domain.values.scope_key import ScopeKey
 
 
 class AssignPermissionUseCase:
@@ -16,14 +17,10 @@ class AssignPermissionUseCase:
             if not role:
                 raise RoleNotFoundError()
 
-            scope_key = f"{input.resource}:{input.action}"
+            scope_key = ScopeKey(resource=input.resource, action=input.action)
             permission = await uow.permissions.find_by_scope_key(scope_key)
             if not permission:
-                permission = await uow.permissions.add(
-                    resource=input.resource,
-                    action=input.action,
-                    scope_key=scope_key,
-                )
+                permission = await uow.permissions.add(scope_key)
 
             if await uow.assignments.role_has_permission(role.id, permission.id):
                 raise PermissionAlreadyAssignedError()
@@ -39,7 +36,7 @@ class AssignPermissionUseCase:
                 action="PERMISSION_GRANTED",
                 entity_type="Role",
                 entity_id=role.id,
-                payload={"scope_key": scope_key, "role_name": role.name},
+                payload={"scope_key": scope_key.key, "role_name": role.name},
             )
 
             await uow.commit()

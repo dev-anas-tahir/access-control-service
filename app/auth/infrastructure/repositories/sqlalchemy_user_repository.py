@@ -47,7 +47,7 @@ class SqlAlchemyUserRepository:
     async def add(self, user: User) -> User:
         orm = UserORM(
             username=user.username,
-            email=user.email,
+            email=user.email.value if user.email else None,
             password_hash=user.password_hash,
             is_active=user.is_active,
             is_super_user=user.is_super_user,

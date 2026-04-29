@@ -6,6 +6,7 @@ from app.auth.domain.exceptions import DefaultRoleMissingError, UserExistsError
 from app.auth.domain.ports.password_hasher import PasswordHasher
 from app.auth.domain.ports.unit_of_work import AuthUnitOfWorkFactory
 from app.shared.domain.entities.user import User
+from app.shared.domain.values.email import Email
 
 
 class SignupUseCase:
@@ -37,7 +38,7 @@ class SignupUseCase:
             new_user = User(
                 id=uuid.uuid4(),
                 username=input.username,
-                email=input.email,
+                email=Email(input.email) if input.email else None,
                 password_hash=password_hash,
                 is_active=True,
                 is_super_user=False,
@@ -50,6 +51,6 @@ class SignupUseCase:
         return SignupResult(
             id=persisted.id,
             username=persisted.username,
-            email=persisted.email,
+            email=persisted.email.value if persisted.email else None,
             created_at=persisted.created_at,
         )

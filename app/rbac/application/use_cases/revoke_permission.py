@@ -4,6 +4,7 @@ from app.rbac.domain.exceptions import (
     RoleNotFoundError,
 )
 from app.rbac.domain.ports.unit_of_work import RbacUnitOfWorkFactory
+from app.shared.domain.values.scope_key import ScopeKey
 
 
 class RevokePermissionUseCase:
@@ -16,7 +17,8 @@ class RevokePermissionUseCase:
             if not role:
                 raise RoleNotFoundError()
 
-            permission = await uow.permissions.find_by_scope_key(input.scope_key)
+            scope_key = ScopeKey.parse(input.scope_key)
+            permission = await uow.permissions.find_by_scope_key(scope_key)
             if not permission:
                 raise PermissionNotFoundError()
 
@@ -29,7 +31,7 @@ class RevokePermissionUseCase:
                 action="PERMISSION_REVOKED",
                 entity_type="Role",
                 entity_id=role.id,
-                payload={"scope_key": input.scope_key, "role_name": role.name},
+                payload={"scope_key": scope_key.key, "role_name": role.name},
             )
 
             await uow.commit()
