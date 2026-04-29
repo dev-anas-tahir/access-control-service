@@ -7,7 +7,7 @@ import logging
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi import APIRouter, HTTPException, status
 
-from app.core.keys import key_pair
+from app.auth.infrastructure.crypto.key_pair import key_pair
 
 logger = logging.getLogger(__name__)
 

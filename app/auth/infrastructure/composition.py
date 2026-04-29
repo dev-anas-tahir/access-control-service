@@ -4,18 +4,20 @@ from app.auth.application.use_cases.login import LoginUseCase
 from app.auth.application.use_cases.logout import LogoutUseCase
 from app.auth.application.use_cases.refresh_token import RefreshTokenUseCase
 from app.auth.application.use_cases.signup import SignupUseCase
+from app.auth.infrastructure.crypto.key_pair import key_pair
 from app.auth.infrastructure.stores.redis_refresh_token_store import (
     RedisRefreshTokenStore,
 )
 from app.auth.infrastructure.stores.redis_revocation_store import RedisRevocationStore
 from app.auth.infrastructure.unit_of_work import SqlAlchemyAuthUnitOfWork
 from app.config import settings
-from app.core.keys import key_pair
-from app.db.redis import redis_client
-from app.db.session import async_session_factory
-from app.shared.infrastructure.crypto.bcrypt_password_hasher import BcryptPasswordHasher
+from app.shared.infrastructure.cache.redis import redis_client
+from app.shared.infrastructure.crypto.bcrypt_password_hasher import (
+    BcryptPasswordHasher,
+)
 from app.shared.infrastructure.crypto.jwt_token_issuer import JwtTokenIssuer
 from app.shared.infrastructure.crypto.jwt_token_verifier import JwtTokenVerifier
+from app.shared.infrastructure.db.session import async_session_factory
 
 # ── Shared singletons ────────────────────────────────────────────────────────
 _hasher = BcryptPasswordHasher()

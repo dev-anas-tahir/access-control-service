@@ -1,7 +1,7 @@
 import jwt
 
+from app.auth.infrastructure.crypto.key_pair import RSAKeyPair
 from app.core.exceptions import InvalidTokenError, TokenExpiredError
-from app.core.keys import RSAKeyPair
 
 
 class JwtTokenVerifier:

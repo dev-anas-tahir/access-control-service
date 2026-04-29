@@ -26,18 +26,22 @@ from sqlalchemy import text
 
 from app.api.v1 import jwks
 from app.audit.infrastructure.http import routes as audit_routes
+from app.auth.infrastructure.crypto.key_pair import key_pair
 from app.auth.infrastructure.http import routes as auth_routes
-from app.auth.infrastructure.http.exception_mapper import register_auth_exception_handlers
+from app.auth.infrastructure.http.exception_mapper import (
+    register_auth_exception_handlers,
+)
 from app.config import settings
-from app.rbac.infrastructure.http import routes as rbac_routes
-from app.rbac.infrastructure.http.exception_mapper import register_rbac_exception_handlers
-from app.core.keys import key_pair
 from app.core.logging import setup_logging
 from app.core.middleware import RequestResponseMiddleware
+from app.rbac.infrastructure.http import routes as rbac_routes
+from app.rbac.infrastructure.http.exception_mapper import (
+    register_rbac_exception_handlers,
+)
 
 # from app.db.pubsub import pubsub_client, topic_path
-from app.db.redis import redis_client
-from app.db.session import async_engine
+from app.shared.infrastructure.cache.redis import redis_client
+from app.shared.infrastructure.db.session import async_engine
 
 logger = logging.getLogger(__name__)
 

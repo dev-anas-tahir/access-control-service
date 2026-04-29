@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import jwt
 
 from app.auth.domain.ports.token_issuer import TokenClaims
-from app.core.keys import RSAKeyPair
+from app.auth.infrastructure.crypto.key_pair import RSAKeyPair
 
 
 class JwtTokenIssuer:

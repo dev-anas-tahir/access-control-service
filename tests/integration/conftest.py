@@ -20,14 +20,13 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
+from app.auth.infrastructure.orm.user import User
 from app.config import settings
-from app.db.session import async_engine as prod_async_engine
-from app.db.session import get_db
 from app.main import app
-from app.models.base import Base
-from app.models.role import Role
-from app.models.user import User
+from app.rbac.infrastructure.orm.role import Role
 from app.shared.infrastructure.crypto.bcrypt_password_hasher import BcryptPasswordHasher
+from app.shared.infrastructure.db.base import Base
+from app.shared.infrastructure.db.session import get_db
 
 _hasher = BcryptPasswordHasher()
 
@@ -194,8 +193,8 @@ async def viewer_role(db):
 async def mock_redis():
     """Mock Redis client to avoid actual Redis connections during tests."""
     from app.auth.infrastructure import composition as auth_composition_module
-    from app.core import rate_limit as rate_limit_module
-    from app.db import redis as redis_module
+    from app.shared.infrastructure.cache import redis as redis_module
+    from app.shared.infrastructure.http import rate_limit as rate_limit_module
 
     # Create a mock Redis client
     mock_client = AsyncMock()
@@ -234,13 +233,13 @@ async def mock_redis():
 def mock_jwt():
     """Inject test RSA keys into the key_pair singleton used by composition adapters.
 
-    Mutates app.core.keys.key_pair._private_key / ._public_key in place so that
+    Mutates key_pair._private_key / ._public_key in place so that
     JwtTokenIssuer and JwtTokenVerifier (which hold a reference to the same
     singleton) sign and verify with real crypto but with test-only keys.
     """
     from cryptography.hazmat.primitives.asymmetric import rsa
 
-    from app.core import keys as keys_module
+    from app.auth.infrastructure.crypto import key_pair as keys_module
 
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     public_key = private_key.public_key()
@@ -289,8 +288,8 @@ def override_engine(engine):
 
     import app.audit.infrastructure.composition as audit_comp
     import app.auth.infrastructure.composition as auth_comp
-    import app.db.session as session_module
     import app.rbac.infrastructure.composition as rbac_comp
+    import app.shared.infrastructure.db.session as session_module
 
     test_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
         engine, expire_on_commit=False
