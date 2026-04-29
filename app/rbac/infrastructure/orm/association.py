@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy import UUID, DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base
+from app.shared.infrastructure.db.base import Base
 
 
 class UserRole(Base):

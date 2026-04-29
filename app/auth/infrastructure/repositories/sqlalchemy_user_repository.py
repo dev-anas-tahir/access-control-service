@@ -4,13 +4,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.auth.infrastructure.orm.user import User as UserORM
 from app.auth.infrastructure.repositories.mappers import (
     apply_domain_to_user_orm,
     user_orm_to_domain,
 )
-from app.models.association import UserRole
-from app.models.role import Role as RoleORM
-from app.models.user import User as UserORM
+from app.rbac.infrastructure.orm.association import UserRole
+from app.rbac.infrastructure.orm.role import Role as RoleORM
 from app.shared.domain.entities.user import User
 
 

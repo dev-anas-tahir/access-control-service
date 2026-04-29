@@ -6,23 +6,22 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from app.audit.infrastructure.orm.audit_log import AuditLog
+from app.auth.infrastructure.orm.user import User
+from app.config import settings
+from app.rbac.infrastructure.orm.association import RolePermission, UserRole
+from app.rbac.infrastructure.orm.role import Permission, Role
+from app.shared.infrastructure.db.base import Base
+
+_ = (AuditLog, User, RolePermission, UserRole, Permission, Role)
+
 # ── Alembic config ───────────────────────────
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# ── Inject DATABASE_URL from settings ────────
-from app.config import settings
-
 config.set_main_option("sqlalchemy.url", str(settings.database_url))
-
-# ── Import models so Alembic detects tables ──
-from app.models.association import RolePermission, UserRole
-from app.models.audit_log import AuditLog
-from app.models.base import Base
-from app.models.role import Permission, Role
-from app.models.user import User
 
 target_metadata = Base.metadata
 

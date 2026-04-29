@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.association import RolePermission, UserRole
+from app.rbac.infrastructure.orm.association import RolePermission, UserRole
 
 
 class SqlAlchemyAssignmentRepository:

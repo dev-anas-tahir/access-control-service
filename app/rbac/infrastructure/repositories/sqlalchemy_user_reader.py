@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User as UserORM
+from app.auth.infrastructure.orm.user import User as UserORM
 from app.rbac.domain.ports.user_reader import UserSummary
 
 

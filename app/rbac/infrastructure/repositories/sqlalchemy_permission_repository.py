@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.role import Permission as PermissionORM
+from app.rbac.infrastructure.orm.role import Permission as PermissionORM
 from app.shared.domain.entities.permission import Permission
 
 

@@ -3,7 +3,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.audit_log import AuditLog as AuditLogORM
+from app.audit.infrastructure.orm.audit_log import AuditLog as AuditLogORM
 
 
 class SqlAlchemyAuditLogger:

@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import UUID, Boolean, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, SoftDeleteMixin, TimestampMixin
+from app.shared.infrastructure.db.base import Base, SoftDeleteMixin, TimestampMixin
 
 
 class User(TimestampMixin, SoftDeleteMixin, Base):

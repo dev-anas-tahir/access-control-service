@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import UUID, Boolean, DateTime, ForeignKey, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, SoftDeleteMixin, TimestampMixin
+from app.shared.infrastructure.db.base import Base, SoftDeleteMixin, TimestampMixin
 
 
 class Role(SoftDeleteMixin, TimestampMixin, Base):

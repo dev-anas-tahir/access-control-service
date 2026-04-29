@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.models.audit_log import AuditLog as AuditLogORM
+from app.audit.infrastructure.orm.audit_log import AuditLog as AuditLogORM
 from app.shared.domain.entities.audit_log import AuditLog
 
 

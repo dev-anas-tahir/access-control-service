@@ -1,6 +1,6 @@
-from app.models.role import Permission as PermissionORM
-from app.models.role import Role as RoleORM
-from app.models.user import User as UserORM
+from app.auth.infrastructure.orm.user import User as UserORM
+from app.rbac.infrastructure.orm.role import Permission as PermissionORM
+from app.rbac.infrastructure.orm.role import Role as RoleORM
 from app.shared.domain.entities.permission import Permission
 from app.shared.domain.entities.role import Role
 from app.shared.domain.entities.user import User

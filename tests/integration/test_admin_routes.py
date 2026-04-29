@@ -6,9 +6,9 @@ Tests all admin endpoints with real database operations (but mocked external ser
 
 from httpx import AsyncClient, Response
 
-from app.models.association import RolePermission, UserRole
-from app.models.audit_log import AuditLog
-from app.models.role import Permission, Role
+from app.audit.infrastructure.orm.audit_log import AuditLog
+from app.rbac.infrastructure.orm.association import RolePermission, UserRole
+from app.rbac.infrastructure.orm.role import Permission, Role
 
 
 async def test_create_role_success(client: AsyncClient, admin_token, viewer_role):
@@ -57,7 +57,7 @@ async def test_delete_role_success(client: AsyncClient, admin_token, db, admin_u
     """Test deleting a role successfully."""
     # Create a new role to delete (not a system role)
 
-    from app.models.role import Role
+    from app.rbac.infrastructure.orm.role import Role
 
     new_role = Role(
         name="test_deletable_role",
