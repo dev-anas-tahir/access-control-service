@@ -4,6 +4,7 @@ import pytest
 
 from app.rbac.application.dto import AssignPermissionInput
 from app.rbac.application.use_cases.assign_permission import AssignPermissionUseCase
+from app.rbac.domain.events import PermissionGranted
 from app.rbac.domain.exceptions import PermissionAlreadyAssignedError, RoleNotFoundError
 from app.shared.domain.values.scope_key import ScopeKey
 from tests.unit.rbac.fakes import (
@@ -102,7 +103,7 @@ async def test_assign_permission_raises_when_already_assigned():
         )
 
 
-async def test_assign_permission_logs_audit_event():
+async def test_assign_permission_emits_domain_event():
     role = make_role()
     uow = FakeRbacUnitOfWork(roles=FakeRoleRepository([role]))
     use_case = _make_use_case(uow)
@@ -116,5 +117,8 @@ async def test_assign_permission_logs_audit_event():
         )
     )
 
-    assert len(uow.audit_logger.entries) == 1
-    assert uow.audit_logger.entries[0].action == "PERMISSION_GRANTED"
+    events = uow.emitted_events
+    assert len(events) == 1
+    event = events[0]
+    assert isinstance(event, PermissionGranted)
+    assert event.scope_key == "reports:read"

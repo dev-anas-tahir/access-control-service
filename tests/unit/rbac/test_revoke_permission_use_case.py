@@ -4,6 +4,7 @@ import pytest
 
 from app.rbac.application.dto import RevokePermissionInput
 from app.rbac.application.use_cases.revoke_permission import RevokePermissionUseCase
+from app.rbac.domain.events import PermissionRevoked
 from app.rbac.domain.exceptions import PermissionNotFoundError, RoleNotFoundError
 from tests.unit.rbac.fakes import (
     FakeAssignmentRepository,
@@ -43,7 +44,7 @@ async def test_revoke_permission_success():
     assert uow.committed is True
 
 
-async def test_revoke_permission_logs_audit_event():
+async def test_revoke_permission_emits_domain_event():
     role = make_role()
     perm = make_permission(resource="reports", action="read")
     uow = FakeRbacUnitOfWork(
@@ -58,8 +59,11 @@ async def test_revoke_permission_logs_audit_event():
         )
     )
 
-    assert len(uow.audit_logger.entries) == 1
-    assert uow.audit_logger.entries[0].action == "PERMISSION_REVOKED"
+    events = uow.emitted_events
+    assert len(events) == 1
+    event = events[0]
+    assert isinstance(event, PermissionRevoked)
+    assert event.scope_key == "reports:read"
 
 
 async def test_revoke_permission_raises_when_role_not_found():

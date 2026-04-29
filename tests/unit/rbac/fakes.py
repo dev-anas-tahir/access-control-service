@@ -8,6 +8,7 @@ from typing import Any
 from app.rbac.domain.ports.user_reader import UserSummary
 from app.shared.domain.entities.permission import Permission
 from app.shared.domain.entities.role import Role
+from app.shared.domain.events import DomainEvent
 from app.shared.domain.values.scope_key import ScopeKey
 
 # ── Entity factories ──────────────────────────────────────────────────────────
@@ -197,16 +198,43 @@ class FakeRbacUnitOfWork:
         self.audit_logger = audit_logger or FakeAuditLogger()
         self.committed = False
         self.rolled_back = False
+        self._pending_events: list[DomainEvent] = []
+        self.emitted_events: list[DomainEvent] = []  # Preserved for test inspection
 
     async def __aenter__(self) -> "FakeRbacUnitOfWork":
+        self._pending_events = []
+        self.emitted_events = []
         return self
 
     async def __aexit__(self, exc_type: object, *args: object) -> None:
         if exc_type:
             self.rolled_back = True
+            self._pending_events.clear()
 
     async def commit(self) -> None:
         self.committed = True
+        # Move pending events to emitted for test inspection
+        self.emitted_events.extend(self._pending_events)
+        self._pending_events.clear()
 
     async def rollback(self) -> None:
         self.rolled_back = True
+        self._pending_events.clear()
+
+    def add_event(self, event: DomainEvent) -> None:
+        """Add a domain event to be dispatched after commit."""
+        self._pending_events.append(event)
+
+    def collect_events(self) -> list[DomainEvent]:
+        """Collect all pending domain events and clear the queue."""
+        events = self._pending_events[:]
+        self._pending_events.clear()
+        return events
+
+    def get_emitted_events(self) -> list[DomainEvent]:
+        """Get all events that were emitted (committed)."""
+        return self.emitted_events[:]
+
+    def clear_emitted_events(self) -> None:
+        """Clear the emitted events history (useful in tests)."""
+        self.emitted_events.clear()

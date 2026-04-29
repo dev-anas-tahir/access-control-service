@@ -4,6 +4,7 @@ import pytest
 
 from app.rbac.application.dto import CreateRoleInput
 from app.rbac.application.use_cases.create_role import CreateRoleUseCase
+from app.rbac.domain.events import RoleCreated
 from app.rbac.domain.exceptions import RoleAlreadyExistsError
 from tests.unit.rbac.fakes import FakeRbacUnitOfWork, make_role
 
@@ -29,7 +30,7 @@ async def test_create_role_success():
     assert uow.committed is True
 
 
-async def test_create_role_logs_audit_event():
+async def test_create_role_emits_domain_event():
     factory, uow = _uow_factory()
     use_case = CreateRoleUseCase(uow_factory=factory)
     actor_id = uuid.uuid4()
@@ -38,11 +39,14 @@ async def test_create_role_logs_audit_event():
         CreateRoleInput(name="analyst", description=None, actor_id=actor_id)
     )
 
-    assert len(uow.audit_logger.entries) == 1
-    entry = uow.audit_logger.entries[0]
-    assert entry.action == "ROLE_CREATED"
-    assert entry.actor_id == actor_id
-    assert entry.entity_type == "Role"
+    # Check that a RoleCreated domain event was emitted
+    events = uow.emitted_events
+    assert len(events) == 1
+    event = events[0]
+    assert isinstance(event, RoleCreated)
+    assert event.actor_id == actor_id
+    assert event.name == "analyst"
+    assert event.is_system is False
 
 
 async def test_create_role_raises_when_name_taken():

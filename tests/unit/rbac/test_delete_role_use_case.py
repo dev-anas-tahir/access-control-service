@@ -4,6 +4,7 @@ import pytest
 
 from app.rbac.application.dto import DeleteRoleInput
 from app.rbac.application.use_cases.delete_role import DeleteRoleUseCase
+from app.rbac.domain.events import RoleDeleted
 from app.rbac.domain.exceptions import RoleNotFoundError
 from app.shared.domain.exceptions import SystemRoleProtectedError
 from tests.unit.rbac.fakes import FakeRbacUnitOfWork, FakeRoleRepository, make_role
@@ -29,15 +30,18 @@ async def test_delete_role_success():
     assert uow.committed is True
 
 
-async def test_delete_role_logs_audit_event():
+async def test_delete_role_emits_domain_event():
     role = make_role(name="analyst")
     uow = FakeRbacUnitOfWork(roles=FakeRoleRepository([role]))
     use_case = _make_use_case(uow)
 
     await use_case.execute(DeleteRoleInput(role_id=role.id, actor_id=uuid.uuid4()))
 
-    assert len(uow.audit_logger.entries) == 1
-    assert uow.audit_logger.entries[0].action == "ROLE_DELETED"
+    events = uow.emitted_events
+    assert len(events) == 1
+    event = events[0]
+    assert isinstance(event, RoleDeleted)
+    assert event.name == "analyst"
 
 
 async def test_delete_role_raises_when_not_found():

@@ -6,6 +6,7 @@ from app.rbac.application.dto import RevokeRoleFromUserInput
 from app.rbac.application.use_cases.revoke_role_from_user import (
     RevokeRoleFromUserUseCase,
 )
+from app.rbac.domain.events import UserRoleRevoked
 from app.rbac.domain.exceptions import RoleNotFoundError, UserNotFoundError
 from tests.unit.rbac.fakes import (
     FakeAssignmentRepository,
@@ -45,7 +46,7 @@ async def test_revoke_role_from_user_success():
     assert uow.committed is True
 
 
-async def test_revoke_role_from_user_logs_audit_event():
+async def test_revoke_role_from_user_emits_domain_event():
     user = make_user_summary(username="carol")
     role = make_role(name="editor")
     uow = FakeRbacUnitOfWork(
@@ -60,10 +61,12 @@ async def test_revoke_role_from_user_logs_audit_event():
         )
     )
 
-    assert len(uow.audit_logger.entries) == 1
-    entry = uow.audit_logger.entries[0]
-    assert entry.action == "USER_ROLE_REVOKED"
-    assert entry.payload == {"user": "carol", "role": "editor"}
+    events = uow.emitted_events
+    assert len(events) == 1
+    event = events[0]
+    assert isinstance(event, UserRoleRevoked)
+    assert event.user_name == "carol"
+    assert event.role_name == "editor"
 
 
 async def test_revoke_role_raises_when_user_not_found():

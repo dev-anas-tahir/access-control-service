@@ -4,6 +4,7 @@ import pytest
 
 from app.rbac.application.dto import AssignRoleToUserInput
 from app.rbac.application.use_cases.assign_role_to_user import AssignRoleToUserUseCase
+from app.rbac.domain.events import UserRoleAssigned
 from app.rbac.domain.exceptions import RoleNotFoundError, UserNotFoundError
 from tests.unit.rbac.fakes import (
     FakeRbacUnitOfWork,
@@ -40,7 +41,7 @@ async def test_assign_role_to_user_success():
     assert uow.committed is True
 
 
-async def test_assign_role_to_user_logs_audit_event():
+async def test_assign_role_to_user_emits_domain_event():
     user = make_user_summary(username="bob")
     role = make_role(name="analyst")
     uow = FakeRbacUnitOfWork(
@@ -55,10 +56,12 @@ async def test_assign_role_to_user_logs_audit_event():
         )
     )
 
-    assert len(uow.audit_logger.entries) == 1
-    entry = uow.audit_logger.entries[0]
-    assert entry.action == "USER_ROLE_ASSIGNED"
-    assert entry.payload == {"user": "bob", "role": "analyst"}
+    events = uow.emitted_events
+    assert len(events) == 1
+    event = events[0]
+    assert isinstance(event, UserRoleAssigned)
+    assert event.user_name == "bob"
+    assert event.role_name == "analyst"
 
 
 async def test_assign_role_raises_when_user_not_found():
