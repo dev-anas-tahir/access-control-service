@@ -1,5 +1,6 @@
 import jwt
 
+from app.auth.domain.ports.token_verifier import TokenPayload
 from app.auth.infrastructure.crypto.key_pair import RSAKeyPair
 from app.core.exceptions import InvalidTokenError, TokenExpiredError
 
@@ -9,7 +10,7 @@ class JwtTokenVerifier:
         self._key_pair = key_pair
         self._algorithm = algorithm
 
-    def verify(self, token: str) -> dict[str, object]:
+    def verify(self, token: str) -> TokenPayload:
         try:
             return jwt.decode(
                 token,

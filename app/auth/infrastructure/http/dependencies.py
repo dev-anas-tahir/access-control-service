@@ -1,9 +1,9 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.auth.domain.ports.token_verifier import TokenPayload
 from app.auth.infrastructure.composition import get_revocation_store, get_token_verifier
 from app.auth.infrastructure.stores.redis_revocation_store import RedisRevocationStore
-from app.core.types import TokenPayload
 from app.shared.infrastructure.crypto.jwt_token_verifier import JwtTokenVerifier
 
 http_bearer = HTTPBearer()

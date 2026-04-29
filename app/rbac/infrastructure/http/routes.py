@@ -2,8 +2,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 
+from app.auth.domain.ports.token_verifier import TokenPayload
 from app.auth.infrastructure.http.dependencies import require_super_user
-from app.core.types import TokenPayload
 from app.rbac.application.dto import (
     AssignPermissionInput,
     AssignRoleToUserInput,

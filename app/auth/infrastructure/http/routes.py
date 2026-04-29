@@ -20,8 +20,8 @@ from app.auth.infrastructure.http.schemas import (
     make_logout_input,
     make_refresh_input,
 )
+from app.auth.domain.ports.token_verifier import TokenPayload
 from app.config import settings
-from app.core.types import TokenPayload
 from app.shared.infrastructure.http.rate_limit import (
     rate_limit_by_ip,
     rate_limit_by_username,

@@ -4,8 +4,8 @@ from app.audit.application.dto import GetAuditLogsInput
 from app.audit.application.use_cases.get_audit_logs import GetAuditLogsUseCase
 from app.audit.infrastructure.composition import get_audit_logs_use_case
 from app.audit.infrastructure.http.schemas import AuditLogResponse
+from app.auth.domain.ports.token_verifier import TokenPayload
 from app.auth.infrastructure.http.dependencies import require_super_user
-from app.core.types import TokenPayload
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
