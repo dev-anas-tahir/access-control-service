@@ -119,90 +119,101 @@ flowchart TB
 
 ```mermaid
 graph TB
-    subgraph "Client Applications"
+    subgraph "Clients"
         WEB[Web Browser]
         MOBILE[Mobile App]
-        API[Third-party API]
+        EXT[Third-party API]
     end
 
     subgraph "Access Control Service"
         LB[Load Balancer]
-        API1[FastAPI App]
 
-        subgraph "API Layer"
-            AUTH[auth endpoints]
-            ADMIN[admin endpoints]
-            JWKS[jwks json]
-        end
-
-        subgraph "Service Layer"
-            AUTH_SVC[AuthService]
-            RBAC_SVC[RBACService]
-        end
-
-        subgraph "Core Utilities"
-            SEC[security.py]
+        subgraph "HTTP Layer (infrastructure/http)"
+            AUTH_R[auth/routes.py]
+            RBAC_R[rbac/routes.py]
+            JWKS_R[auth/jwks.py]
             DEPS[dependencies.py]
             RATE[rate_limit.py]
-            KEYS[keys.py]
         end
 
-        subgraph "Data Models"
-            USER[User]
-            ROLE[Role]
-            PERM[Permission]
-            AUDIT[AuditLog]
-            ASSOC[Association Tables]
+        subgraph "Application Layer (use cases)"
+            AUTH_UC[Auth Use Cases<br/>signup · login · refresh · logout]
+            RBAC_UC[RBAC Use Cases<br/>create_role · delete_role<br/>assign_permission · assign_role…]
+            AUDIT_UC[Audit Use Case<br/>get_audit_logs]
+        end
+
+        subgraph "Domain Layer (ports & entities)"
+            ENTS[Shared Entities<br/>User · Role · Permission]
+            VALS[Value Objects<br/>Email · ScopeKey]
+            EVTS[Domain Events<br/>RoleCreated · PermissionGranted…]
+            PORTS[Protocol Ports<br/>repositories · UoW · stores · crypto]
+        end
+
+        subgraph "Infrastructure Adapters"
+            AUTH_REPOS[auth/repositories<br/>SQLAlchemy user + role repos]
+            RBAC_REPOS[rbac/repositories<br/>SQLAlchemy role + perm + assignment]
+            AUDIT_REPO[audit/sqlalchemy_audit_logger]
+            UOW_AUTH[SqlAlchemyAuthUnitOfWork]
+            UOW_RBAC[SqlAlchemyRbacUnitOfWork<br/>+ event dispatch]
+            STORES[Redis stores<br/>refresh token · revocation]
+            CRYPTO[shared/crypto<br/>BcryptPasswordHasher · JwtTokenIssuer]
         end
     end
 
     subgraph "External Services"
         PG[PostgreSQL]
         REDIS[Redis]
-        PUBSUB[PubSub Topic]
     end
 
     WEB --> LB
     MOBILE --> LB
-    API --> LB
-    LB --> API1
+    EXT --> LB
+    LB --> AUTH_R
+    LB --> RBAC_R
+    LB --> JWKS_R
 
-    API1 --> AUTH
-    API1 --> ADMIN
-    API1 --> JWKS
+    AUTH_R --> AUTH_UC
+    RBAC_R --> RBAC_UC
+    RBAC_R --> AUDIT_UC
+    AUTH_R --> DEPS
+    RBAC_R --> DEPS
+    AUTH_R --> RATE
+    RBAC_R --> RATE
 
-    AUTH --> AUTH_SVC
-    ADMIN --> RBAC_SVC
+    AUTH_UC --> ENTS
+    AUTH_UC --> VALS
+    AUTH_UC --> PORTS
+    RBAC_UC --> ENTS
+    RBAC_UC --> VALS
+    RBAC_UC --> EVTS
+    RBAC_UC --> PORTS
 
-    AUTH_SVC --> SEC
-    RBAC_SVC --> SEC
+    AUTH_UC --> UOW_AUTH
+    RBAC_UC --> UOW_RBAC
 
-    AUTH_SVC --> DEPS
-    ADMIN --> DEPS
+    UOW_AUTH --> AUTH_REPOS
+    UOW_RBAC --> RBAC_REPOS
+    UOW_RBAC --> AUDIT_REPO
+    AUTH_UC --> STORES
+    AUTH_UC --> CRYPTO
+    DEPS --> STORES
+    DEPS --> CRYPTO
 
-    AUTH --> RATE
-    ADMIN --> RATE
-
-    AUTH_SVC --> USER
-    RBAC_SVC --> ROLE
-    RBAC_SVC --> PERM
-    RBAC_SVC --> AUDIT
-    AUTH_SVC --> ASSOC
-    RBAC_SVC --> ASSOC
-
-    AUTH_SVC --> PG
-    RBAC_SVC --> PG
-    AUTH_SVC --> REDIS
+    AUTH_REPOS --> PG
+    RBAC_REPOS --> PG
+    AUDIT_REPO --> PG
+    STORES --> REDIS
     DEPS --> REDIS
 
-    AUTH_SVC --> PUBSUB
-
-    style API1 fill:#0d47a1,stroke:#4fc3f7,color:#ffffff
-    style AUTH_SVC fill:#4a148c,stroke:#ce93d8,color:#ffffff
-    style RBAC_SVC fill:#4a148c,stroke:#ce93d8,color:#ffffff
+    style AUTH_UC fill:#4a148c,stroke:#ce93d8,color:#ffffff
+    style RBAC_UC fill:#4a148c,stroke:#ce93d8,color:#ffffff
+    style AUDIT_UC fill:#4a148c,stroke:#ce93d8,color:#ffffff
+    style ENTS fill:#1b5e20,stroke:#81c784,color:#ffffff
+    style VALS fill:#1b5e20,stroke:#81c784,color:#ffffff
+    style EVTS fill:#1b5e20,stroke:#81c784,color:#ffffff
+    style PORTS fill:#1b5e20,stroke:#81c784,color:#ffffff
     style PG fill:#1b5e20,stroke:#81c784,color:#ffffff
     style REDIS fill:#b71c1c,stroke:#ef9a9a,color:#ffffff
-    style PUBSUB fill:#e65100,stroke:#ffcc80,color:#ffffff
 ```
 
 ## Deployment Diagram
@@ -271,55 +282,62 @@ graph TB
 
 ```mermaid
 flowchart LR
-  C1[Client] --> API_AUTH[API auth]
-  API_AUTH --> AUTH_SVC[AuthService]
-  AUTH_SVC --> VERIFY[Verify credentials]
-  VERIFY --> TOKEN_CREATE[Create tokens]
-  TOKEN_CREATE --> RESPONSE[Response with Cookies]
-  TOKEN_CREATE --> REDIS[Redis refresh token store]
+  C1[Client] --> AUTH_ROUTE[auth/routes.py]
+  AUTH_ROUTE --> LOGIN_UC[LoginUseCase]
+  LOGIN_UC --> USER_REPO[UserRepository]
+  USER_REPO --> PG[PostgreSQL]
+  LOGIN_UC --> HASHER[BcryptPasswordHasher]
+  LOGIN_UC --> ISSUER[JwtTokenIssuer]
+  LOGIN_UC --> RT_STORE[Redis refresh token store]
+  LOGIN_UC --> RESPONSE[Response + Set-Cookie]
   RESPONSE --> C1
 
-  C2[Client signup] --> API_SIGNUP[API signup]
-  API_SIGNUP --> AUTH_SVC2[AuthService]
-  AUTH_SVC2 --> PG[PostgreSQL]
-  PG --> USER_CREATED[User Created]
-  USER_CREATED --> C2
+  C2[Client] --> SIGNUP_ROUTE[auth/routes.py]
+  SIGNUP_ROUTE --> SIGNUP_UC[SignupUseCase]
+  SIGNUP_UC --> UOW_AUTH[AuthUnitOfWork]
+  UOW_AUTH --> PG2[PostgreSQL]
+  SIGNUP_UC --> RESULT[201 Created]
+  RESULT --> C2
 
   style C1 fill:#0f1720,stroke:#000
-  style API_AUTH fill:#003b52,stroke:#000
-  style AUTH_SVC fill:#3b0f4a,stroke:#000
-  style VERIFY fill:#1f2933,stroke:#000
-  style TOKEN_CREATE fill:#1f2933,stroke:#000
+  style AUTH_ROUTE fill:#003b52,stroke:#000
+  style LOGIN_UC fill:#3b0f4a,stroke:#000
+  style HASHER fill:#1f2933,stroke:#000
+  style ISSUER fill:#1f2933,stroke:#000
   style RESPONSE fill:#0b1320,stroke:#000
-  style REDIS fill:#4b0014,stroke:#000
+  style RT_STORE fill:#4b0014,stroke:#000
   style C2 fill:#0f1720,stroke:#000
-  style API_SIGNUP fill:#003b52,stroke:#000
-  style AUTH_SVC2 fill:#3b0f4a,stroke:#000
+  style SIGNUP_ROUTE fill:#003b52,stroke:#000
+  style SIGNUP_UC fill:#3b0f4a,stroke:#000
+  style UOW_AUTH fill:#1f2933,stroke:#000
   style PG fill:#184615,stroke:#000
-  style USER_CREATED fill:#0f1720,stroke:#000
-
+  style PG2 fill:#184615,stroke:#000
+  style RESULT fill:#0f1720,stroke:#000
 ```
 
 ### RBAC Administration Flow
 
 ```mermaid
 flowchart LR
-    Super[Super User] --> API_ADMIN[API admin]
-    API_ADMIN --> RBAC_SVC[RBACService]
-    RBAC_SVC --> PG[PostgreSQL]
-    PG --> ROLE_CHANGED[Role Permission Modified]
-    RBAC_SVC --> AUDIT[AuditLog Record]
-    AUDIT --> PUBSUB[PubSub optional]
-    ROLE_CHANGED --> API_ADMIN
+    Super[Super User] --> ADMIN_ROUTE[rbac/routes.py]
+    ADMIN_ROUTE --> RBAC_UC[RBAC Use Case]
+    RBAC_UC --> UOW_RBAC[SqlAlchemyRbacUnitOfWork]
+    UOW_RBAC --> PG[PostgreSQL]
+    RBAC_UC --> EVENT[emit DomainEvent]
+    EVENT --> UOW_RBAC
+    UOW_RBAC --> AUDIT[AuditLogger<br/>on commit]
+    AUDIT --> PG
+    UOW_RBAC --> RESPONSE[Response]
+    RESPONSE --> ADMIN_ROUTE
 
     style Super fill:#0f1720,stroke:#000
-    style API_ADMIN fill:#003b52,stroke:#000
-    style RBAC_SVC fill:#3b0f4a,stroke:#000
+    style ADMIN_ROUTE fill:#003b52,stroke:#000
+    style RBAC_UC fill:#3b0f4a,stroke:#000
+    style UOW_RBAC fill:#1f2933,stroke:#000
     style PG fill:#184615,stroke:#000
-    style ROLE_CHANGED fill:#0f1720,stroke:#000
+    style EVENT fill:#1b5e20,stroke:#000
     style AUDIT fill:#0b1320,stroke:#000
-    style PUBSUB fill:#6b3e00,stroke:#000
-
+    style RESPONSE fill:#0f1720,stroke:#000
 ```
 
 ### Token Validation Flow
@@ -348,13 +366,13 @@ flowchart LR
 
 ### Internal Interfaces
 
-**Service ↔ Database**
-- All database operations use SQLAlchemy Core/ORM
+**Use Case ↔ Database** (via Unit of Work + Repository ports)
+- All database operations use SQLAlchemy async ORM
 - Async sessions with `await` on all operations
 - Connection pooling managed at engine level
-- Transactions committed by caller (service methods don't auto-commit)
+- Transactions are committed explicitly inside each use case via `await uow.commit()`
 
-**Service ↔ Redis**
+**Use Case ↔ Redis** (via port adapters)
 - `redis.asyncio` client for async operations
 - Key patterns:
   - `refresh_token:{token}` → `user_id` (string)
@@ -362,15 +380,15 @@ flowchart LR
   - `rate_limit:ip:{ip}:{endpoint}` → counter (integer)
   - `rate_limit:username:{username}:{endpoint}` → counter (integer)
 
-**Service → JWT**
-- `security.create_access_token()` returns signed JWT string
-- `security.verify_access_token()` returns payload dict or raises exception
-- Uses RSA key pair from `core.keys.key_pair`
+**Use Case → JWT** (via `TokenIssuer` / `TokenVerifier` ports)
+- `JwtTokenIssuer.issue(claims)` returns signed JWT string
+- `JwtTokenVerifier.verify(token)` returns `TokenPayload` or raises `InvalidTokenError` / `TokenExpiredError`
+- Uses RSA key pair from `app/auth/infrastructure/crypto/key_pair.py`
 
-**API → Service**
-- Direct method calls with Pydantic schema instances
-- Service methods raise domain exceptions (see `core/exceptions.py`)
-- API layer catches and converts to `HTTPException`
+**HTTP → Use Case**
+- Route handlers call `await use_case.execute(input_dto)`
+- Domain exceptions mapped to `HTTPException` via `exception_mapper.py`
+- API layer never contains business logic
 
 ### External Interfaces
 

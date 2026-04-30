@@ -169,7 +169,7 @@ Permission definitions defining allowable actions.
 - `permissions_scope_key_key` (unique)
 - `permissions_resource_action_idx` (optional, for querying by parts)
 
-**Computed Field**: `scope_key` typically generated as `f"{resource}:{action}"` in service layer (`rbac_service.py:114`) and stored denormalized for efficient lookup.
+**Computed Field**: `scope_key` is stored as `resource:action`. It is generated via the `ScopeKey` value object (`app/shared/domain/values/scope_key.py`) and persisted denormalized for efficient lookup. `ScopeKey.parse("resource:action")` is the canonical way to reconstruct it from a string.
 
 **No Soft Delete**: Permissions are immutable once created; no `is_deleted` column. Deleting permissions would break RBAC integrity; instead revoke associations.
 
@@ -360,7 +360,7 @@ stmt = select(User)  # Missing filter
    VALUES (gen_random_uuid(), 'viewer', 'Default read-only role', true, NOW());
    ```
 
-   This role must exist before any user signup (see `auth_service.py:97` which raises `RuntimeError` if not found).
+   This role must exist before any user signup — `SignupUseCase` raises `DefaultRoleMissingError` if not found (`app/auth/application/use_cases/signup.py`).
 
 ### Optional Initial Data
 

@@ -14,13 +14,24 @@ A comprehensive access control system built with FastAPI, SQLAlchemy, and Pydant
 
 ## Architecture
 
-The service follows a clean architecture pattern with distinct layers:
+The service follows **hexagonal (ports & adapters) architecture** across three bounded contexts:
 
-- **Models**: SQLAlchemy models for database entities
-- **Schemas/DTOs**: Pydantic models for data validation and serialization
-- **Services**: Business logic implementations
-- **Core**: Shared utilities and configurations
-- **DB**: Database and cache utilities
+- **Domain layer** — pure Python dataclasses and `typing.Protocol` ports; no SQLAlchemy, FastAPI, or Redis
+- **Application layer** — one class per use case (`SignupUseCase`, `LoginUseCase`, `CreateRoleUseCase`, …) that depend only on ports
+- **Infrastructure layer** — adapters: SQLAlchemy repositories, Redis stores, FastAPI routes, JWT crypto
+
+```
+app/
+├── auth/        # Signup, login, refresh, logout — JWT + bcrypt
+├── rbac/        # Roles, permissions, user-role assignments — RBAC
+├── audit/       # Audit log reads
+├── shared/      # Cross-cutting: entities, value objects, domain events, infra utils
+└── core/        # Logging, middleware, context
+```
+
+Domain events decouple RBAC from Audit: use cases emit typed events (`RoleCreated`, `PermissionGranted`, …); the Unit of Work dispatches them to the audit logger after commit.
+
+See [`docs/01-system-architecture.md`](docs/01-system-architecture.md) for the full architecture reference.
 
 ## Installation
 
@@ -65,11 +76,19 @@ The API documentation will be available at `http://localhost:8000/docs`.
 
 ## API Endpoints
 
-- `POST /auth/signup` - Register a new user
-- `POST /auth/login` - Authenticate a user
-- `POST /auth/logout` - Log out a user
-- `POST /auth/refresh` - Refresh access token
-- `GET /auth/me` - Get current user information
+- `POST /api/v1/auth/signup` — Register a new user
+- `POST /api/v1/auth/login` — Authenticate and receive access + refresh tokens
+- `POST /api/v1/auth/logout` — Revoke tokens
+- `POST /api/v1/auth/refresh` — Rotate refresh token
+- `GET /api/v1/auth/me` — Current user info
+- `GET /.well-known/jwks.json` — Public key for JWT verification
+- `POST /api/v1/admin/roles` — Create role (super user only)
+- `DELETE /api/v1/admin/roles/{id}` — Delete role
+- `POST /api/v1/admin/roles/{id}/permissions` — Assign permission
+- `DELETE /api/v1/admin/roles/{id}/permissions` — Revoke permission
+- `POST /api/v1/admin/users/{id}/roles` — Assign role to user
+- `DELETE /api/v1/admin/users/{id}/roles/{role_id}` — Revoke role from user
+- `GET /api/v1/admin/audit-logs` — Paginated audit trail
 
 ## Documentation Standards
 

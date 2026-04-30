@@ -122,7 +122,7 @@ ruff format .
 
 ## Environment Variables
 
-All settings are loaded via `app/core/config.py` using `pydantic-settings`.
+All settings are loaded via `app/config.py` using `pydantic-settings`.
 Never hardcode secrets. Load from `.env` locally and from GCP Secret Manager in production.
 
 Required variables:
@@ -262,7 +262,7 @@ These actions require **explicit confirmation before proceeding**:
 - Modifying Alembic migration files or generating new ones.
 - Changing SQLAlchemy model definitions (schema changes).
 - Changing the JWT signing algorithm or key loading logic.
-- Modifying `app/core/config.py` settings definitions.
+- Modifying `app/config.py` settings definitions.
 - Deleting or renaming existing API routes (breaking change).
 
 These actions are **forbidden**:
