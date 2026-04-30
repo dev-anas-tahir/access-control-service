@@ -1,3 +1,4 @@
+from app.audit.infrastructure.sqlalchemy_audit_logger import SqlAlchemyAuditLogger
 from app.rbac.application.use_cases.assign_permission import AssignPermissionUseCase
 from app.rbac.application.use_cases.assign_role_to_user import AssignRoleToUserUseCase
 from app.rbac.application.use_cases.create_role import CreateRoleUseCase
@@ -11,8 +12,12 @@ from app.shared.infrastructure.db.session import async_session_factory
 
 
 def _uow_factory() -> SqlAlchemyRbacUnitOfWork:
-    """Factory for creating UoW instances with domain event support."""
-    return SqlAlchemyRbacUnitOfWork(session_factory=async_session_factory)
+    """Factory for creating UoW instances. Injects SqlAlchemyAuditLogger so that
+    the UoW itself has no compile-time dependency on the Audit context."""
+    return SqlAlchemyRbacUnitOfWork(
+        session_factory=async_session_factory,
+        audit_logger_factory=SqlAlchemyAuditLogger,
+    )
 
 
 def get_create_role_use_case() -> CreateRoleUseCase:
