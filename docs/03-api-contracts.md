@@ -35,7 +35,7 @@ All API endpoints return JSON and use standard HTTP status codes.
 
 **Authentication**: None
 
-**Request Body** (`SignupRequest`) - `app/schemas/auth.py:31-77`
+**Request Body** (`SignupRequest`) - `app/auth/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -52,7 +52,7 @@ All API endpoints return JSON and use standard HTTP status codes.
 
 **Response** (201 Created)
 
-**Schema**: `UserResponse` - `app/schemas/auth.py:110-127`
+**Schema**: `UserResponse` - `app/auth/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -77,7 +77,7 @@ All API endpoints return JSON and use standard HTTP status codes.
 
 **Authentication**: None
 
-**Request Body** (`LoginRequest`) - `app/schemas/auth.py:80-92`
+**Request Body** (`LoginRequest`) - `app/auth/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -88,7 +88,7 @@ All API endpoints return JSON and use standard HTTP status codes.
 
 **Response** (200 OK)
 
-**Schema**: `TokenResponse` - `app/schemas/auth.py:95-107`
+**Schema**: `TokenResponse` - `app/auth/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -165,7 +165,7 @@ All API endpoints return JSON and use standard HTTP status codes.
 
 **Response** (200 OK)
 
-**Schema**: `MeResponse` - `app/schemas/auth.py:130-151`
+**Schema**: `MeResponse` - `app/auth/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -191,7 +191,7 @@ All admin endpoints require `is_super_user=True` in the JWT.
 
 **Authentication**: Super user required
 
-**Request Body** (`RoleCreate`) - `app/schemas/role.py:9-13`
+**Request Body** (`RoleCreate`) - `app/rbac/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -202,7 +202,7 @@ All admin endpoints require `is_super_user=True` in the JWT.
 
 **Response** (201 Created)
 
-**Schema**: `RoleResponse` - `app/schemas/role.py:16-26`
+**Schema**: `RoleResponse` - `app/rbac/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -247,7 +247,7 @@ All admin endpoints require `is_super_user=True` in the JWT.
 **Path Parameters**:
 - `role_id`: UUID of target role
 
-**Request Body** (`PermissionCreate`) - `app/schemas/role.py:29-33`
+**Request Body** (`PermissionCreate`) - `app/rbac/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -258,7 +258,7 @@ All admin endpoints require `is_super_user=True` in the JWT.
 
 **Response** (201 Created)
 
-**Schema**: `RolePermissionResponse` - `app/schemas/role.py:68-76`
+**Schema**: `RolePermissionResponse` - `app/rbac/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -305,7 +305,7 @@ All admin endpoints require `is_super_user=True` in the JWT.
 **Path Parameters**:
 - `user_id`: UUID of target user
 
-**Request Body** (`AssignRoleRequest`) - `app/schemas/role.py:48-51`
+**Request Body** (`AssignRoleRequest`) - `app/rbac/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -315,7 +315,7 @@ All admin endpoints require `is_super_user=True` in the JWT.
 
 **Response** (201 Created)
 
-**Schema**: `UserRoleResponse` - `app/schemas/role.py:79-86`
+**Schema**: `UserRoleResponse` - `app/rbac/infrastructure/http/schemas.py`
 
 ```json
 {
@@ -365,7 +365,7 @@ All admin endpoints require `is_super_user=True` in the JWT.
 
 **Response** (200 OK)
 
-**Schema**: `list[AuditLogResponse]` - `app/schemas/role.py:54-65`
+**Schema**: `list[AuditLogResponse]` - `app/audit/infrastructure/http/schemas.py`
 
 ```json
 [
@@ -431,13 +431,13 @@ All admin endpoints require `is_super_user=True` in the JWT.
 - `n`: Modulus (base64url-encoded without padding)
 - `e`: Exponent (base64url-encoded, typically "AQAB" for 65537)
 
-**File**: `app/api/v1/jwks.py`
+**File**: `app/auth/infrastructure/http/jwks.py`
 
 ---
 
 ## Pydantic Schema Reference
 
-### `app/schemas/auth.py`
+### `app/auth/infrastructure/http/schemas.py`
 
 #### `SignupRequest` (Input)
 ```python
@@ -489,7 +489,7 @@ class MeResponse(BaseModel):
 
 ---
 
-### `app/schemas/role.py`
+### `app/rbac/infrastructure/http/schemas.py`
 
 #### `RoleCreate` (Input)
 ```python
@@ -680,8 +680,12 @@ curl http://localhost:8000/.well-known/jwks.json
 
 ## References
 
-- API implementations: `app/api/v1/auth.py`, `app/api/v1/admin.py`, `app/api/v1/jwks.py`
-- Schemas: `app/schemas/auth.py`, `app/schemas/role.py`
-- Services: `app/services/auth_service.py`, `app/services/rbac_service.py`
-- Rate limiting: `app/core/rate_limit.py`
-- Authentication dependency: `app/core/dependencies.py`
+- Auth routes: `app/auth/infrastructure/http/routes.py`
+- RBAC routes: `app/rbac/infrastructure/http/routes.py`
+- Audit routes: `app/audit/infrastructure/http/routes.py`
+- JWKS: `app/auth/infrastructure/http/jwks.py`
+- Auth schemas: `app/auth/infrastructure/http/schemas.py`
+- RBAC schemas: `app/rbac/infrastructure/http/schemas.py`
+- Audit schemas: `app/audit/infrastructure/http/schemas.py`
+- Rate limiting: `app/shared/infrastructure/http/rate_limit.py`
+- Authentication dependency: `app/auth/infrastructure/http/dependencies.py`

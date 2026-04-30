@@ -250,11 +250,11 @@ def override_settings():
     settings.database_url = original
 ```
 
-**`tests/contegration/conftest.py:278-288`**:
+**`tests/integration/conftest.py`**:
 ```python
 @pytest.fixture(scope="session", autouse=True)
 def override_engine(engine):
-    import app.db.session as session_module
+    import app.shared.infrastructure.db.session as session_module
     session_module.async_engine = engine
 ```
 
@@ -291,5 +291,5 @@ if env_file.exists():
 ## References
 
 - Configuration class: `app/config.py:28-86`
-- Settings usage: `app/main.py`, `app/db/session.py`, `app/core/keys.py`, etc.
+- Settings usage: `app/main.py`, `app/shared/infrastructure/db/session.py`, `app/auth/infrastructure/crypto/key_pair.py`, etc.
 - Environment loading: Pydantic `BaseSettings` documentation

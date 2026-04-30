@@ -95,28 +95,36 @@ The service represents a strategic migration from a monolithic Django applicatio
 
 ## Project Structure
 
+The service uses **hexagonal (ports & adapters) architecture** across three bounded contexts.
+
 ```
 access-control-service/
 ├── app/
-│   ├── api/v1/          # HTTP endpoints (auth, admin, jwks)
-│   ├── core/            # Security, dependencies, rate limiting, utilities
-│   ├── db/              # Database and Redis connections, Pub/Sub
-│   ├── models/          # SQLAlchemy ORM models
-│   ├── schemas/         # Pydantic request/response schemas
-│   ├── services/        # Business logic layer
-│   ├── config.py        # Settings configuration
+│   ├── auth/            # Authentication context (signup, login, refresh, logout)
+│   │   ├── domain/      # Ports (Protocols), exceptions
+│   │   ├── application/ # Use cases + DTOs
+│   │   └── infrastructure/ # SQLAlchemy repos, Redis stores, JWT, FastAPI routes
+│   ├── rbac/            # RBAC context (roles, permissions, user-role assignments)
+│   │   ├── domain/      # Ports, domain events, exceptions
+│   │   ├── application/ # Use cases + DTOs
+│   │   └── infrastructure/ # Repositories, UoW (with event dispatch), FastAPI routes
+│   ├── audit/           # Audit context (read-only log queries)
+│   │   ├── domain/      # AuditLogReader port
+│   │   ├── application/ # GetAuditLogsUseCase
+│   │   └── infrastructure/ # SQLAlchemy logger + reader, FastAPI routes
+│   ├── shared/
+│   │   ├── domain/      # Entities (User, Role, Permission), value objects (Email, ScopeKey),
+│   │   │                # domain events base, AuditLogger port
+│   │   └── infrastructure/ # Crypto, DB session, Redis client, event dispatcher
+│   ├── core/            # Logging, middleware, request context
+│   ├── config.py        # Settings via pydantic-settings
 │   └── main.py          # FastAPI app factory and lifespan
 ├── tests/
-│   ├── conftest.py      # Shared fixtures
-│   ├── unit/            # Unit tests (mock dependencies)
-│   └── integration/     # Integration tests (real DB, mocked external)
+│   ├── unit/            # Pure logic tests using in-memory fakes (no DB/network)
+│   └── integration/     # HTTP tests against real async DB
 ├── keys/                # RSA key pair (dev only, .gitignored)
-│   ├── private.pem
-│   └── public.pem
 ├── alembic/             # Database migrations
-├── .env.example         # Environment variable template
 ├── pyproject.toml       # Project dependencies and metadata
-├── uv.lock              # Locked dependency versions
 └── README.md            # Quick start guide
 ```
 

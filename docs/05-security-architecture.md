@@ -38,7 +38,7 @@
 }
 ```
 
-**Payload Claims** (`app/core/security.py:46-56`):
+**Payload Claims** (`app/auth/infrastructure/crypto/jwt_token_issuer.py`):
 
 | Claim | Type | Description |
 |-------|------|-------------|
@@ -67,47 +67,9 @@
 }
 ```
 
-**Signing Process** (`app/core/security.py:33-59`):
-```python
-def create_access_token(user_id: UUID, username: str, roles: list[str],
-                       permissions: list[str], is_super_user: bool) -> str:
-    now = datetime.now(timezone.utc)
-    exp = now + timedelta(minutes=settings.jwt_access_token_expire_minutes)
-    payload = {
-        "sub": str(user_id),
-        "iss": settings.jwt_issuer,
-        "iat": now,
-        "exp": exp,
-        "jti": str(uuid4()),
-        "username": username,
-        "roles": roles,
-        "permissions": permissions,
-        "is_super_user": is_super_user,
-    }
-    return jwt.encode(
-        payload,
-        key_pair.private_key,
-        algorithm=settings.jwt_algorithm,
-    )
-```
+**Signing** (`app/shared/infrastructure/crypto/jwt_token_issuer.py`): `JwtTokenIssuer.issue(TokenClaims)` — builds payload with all claims, signs with RS256 private key via PyJWT.
 
-**Validation** (`app/core/security.py:61-81`):
-```python
-def verify_access_token(token: str) -> dict:
-    try:
-        payload = jwt.decode(
-            token,
-            key_pair.public_key,
-            algorithms=[settings.jwt_algorithm],
-            issuer=settings.jwt_issuer,
-            options={"require": ["exp", "sub", "jti", "iss"]},
-        )
-        return payload
-    except ExpiredSignatureError:
-        raise TokenExpiredError("Token has expired")
-    except PyJWTError as e:
-        raise InvalidTokenError(f"Invalid token: {str(e)}")
-```
+**Validation** (`app/shared/infrastructure/crypto/jwt_token_verifier.py`): `JwtTokenVerifier.verify(token)` — decodes with RS256 public key, requires `exp`, `sub`, `jti`, `iss`. Raises `TokenExpiredError` or `InvalidTokenError` (both in `app/auth/domain/exceptions.py`).
 
 ---
 
@@ -118,18 +80,8 @@ def verify_access_token(token: str) -> dict:
 **Storage**: Redis key-value store
 
 **Pattern**:
-- When token is revoked (logout or refresh rotation):
-  ```python
-  ttl_seconds = payload["exp"] - int(time.time())  # remaining lifetime
-  await redis_client.setex(f"revoked_jti:{jti}", ttl_seconds, "1")
-  ```
-- On each request (`get_current_user` dependency):
-  ```python
-  jti = payload.get("jti")
-  exists = await redis_client.get(f"revoked_jti:{jti}")
-  if exists:
-      raise HTTPException(401, "Token has been revoked")
-  ```
+- On logout (`LogoutUseCase`): `revocation_store.revoke(jti, remaining_ttl)` → `RedisRevocationStore` calls `SETEX revoked_jti:{jti}`
+- On each request (`get_current_user` in `app/auth/infrastructure/http/dependencies.py`): `revocation_store.is_revoked(jti)` → raises `HTTPException(401)` if found
 
 **TTL**: Matches remaining token lifetime; Redis auto-evicts expired keys.
 
@@ -175,18 +127,7 @@ TTL: 7 days (configurable)
 - Development: Filesystem (`keys/private.pem`, `keys/public.pem`) - **NOT COMMITTED**
 - Production: GCP Secret Manager
 
-**Loading** (`app/core/keys.py`):
-```python
-class RSAKeyPair:
-    @classmethod
-    def load(cls):
-        with open(settings.private_key_path, "rb") as f:
-            private_key = serialization.load_pem_private_key(f.read(), password=None)
-        with open(settings.public_key_path, "rb") as f:
-            public_key = serialization.load_pem_public_key(f.read())
-        cls.private_key = private_key
-        cls.public_key = public_key
-```
+**Loading** (`app/auth/infrastructure/crypto/key_pair.py`): `RSAKeyPair` singleton; `load()` reads PEM files via `cryptography` library. Called once during app lifespan startup.
 
 **Key Format**: PEM-encoded RSA keys (PKCS#1 or PKCS#8)
 
@@ -215,26 +156,9 @@ openssl rsa -in keys/private.pem -pubout -out keys/public.pem
 
 **Work Factor**: Default rounds (typically 12, depends on `passlib` defaults)
 
-**Hashing** (`app/core/security.py:13-20`):
-```python
-pwd_context = CryptContext(schemes=["bcrypt", "django_pbkdf2_sha256"], deprecated="auto")
+**Implementation** (`app/shared/infrastructure/crypto/bcrypt_password_hasher.py`): `BcryptPasswordHasher` wraps `passlib.CryptContext(schemes=["bcrypt", "django_pbkdf2_sha256"], deprecated="auto")`. Implements the `PasswordHasher` port.
 
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-def verify_password(password: str, hashed: str) -> bool:
-    return pwd_context.verify(password, hashed)
-
-def needs_rehash(hashed: str) -> bool:
-    return pwd_context.needs_update(hashed)
-```
-
-**Lazy Migration from Django PBKDF2** (`app/services/auth_service.py:148-156`):
-```python
-if security.needs_rehash(user.password_hash):
-    user.password_hash = security.hash_password(data.password)
-    # session.add(user) implicitly; caller commits
-```
+**Lazy Migration from Django PBKDF2**: `LoginUseCase` calls `hasher.needs_rehash(hash)` and if `True`, re-hashes the plain password with bcrypt and persists it in the same UoW transaction.
 
 **Workflow**:
 1. User signs up with Django (legacy) → password stored as PBKDF2 hash
@@ -281,16 +205,7 @@ def validate_password(cls, v: str) -> str:
 - `POST /auth/logout`
 - `GET /auth/me`
 
-**Implementation** (`app/core/rate_limit.py:15-38`):
-```python
-key = f"rate_limit:ip:{ip_address}:{request.url.path}"
-count = await redis_client.incr(key)
-if count == 1:
-    await redis_client.expire(key, IP_WINDOW)  # 60 seconds
-if count > IP_MAX_ATTEMPTS:  # 20
-    retry_after = await redis_client.ttl(key)
-    raise HTTPException(429, "Too many requests", headers={"Retry-After": str(retry_after)})
-```
+**Implementation** (`app/shared/infrastructure/http/rate_limit.py`): `rate_limit_by_ip` — Redis `INCR rate_limit:ip:{ip}:{path}`, sets `EXPIRE 60` on first request, raises `HTTPException(429)` with `Retry-After` header when over 20.
 
 **Response**: `429 Too Many Requests` with `Retry-After` header (seconds until reset)
 

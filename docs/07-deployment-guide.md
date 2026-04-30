@@ -162,18 +162,17 @@ The 'viewer' role must exist for signup to work.
 Create seed script (`scripts/seed.py`):
 ```python
 import asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.session import async_session_factory
-from app.models.role import Role
+from sqlalchemy import select
+from app.shared.infrastructure.db.session import async_session_factory
+from app.shared.infrastructure.db.models import RoleORM
 
 async def seed():
     async with async_session_factory() as session:
-        # Check if viewer role exists
         result = await session.execute(
-            select(Role).where(Role.name == "viewer", Role.is_deleted == False)
+            select(RoleORM).where(RoleORM.name == "viewer", RoleORM.is_deleted == False)
         )
         if result.scalar_one_or_none() is None:
-            viewer = Role(
+            viewer = RoleORM(
                 name="viewer",
                 description="Default read-only role",
                 is_system=True
@@ -195,19 +194,21 @@ uv run python scripts/seed.py
 
 **Optional**: Create initial super user:
 ```python
-from app.services.auth_service import AuthService
-from app.schemas.auth import SignupRequest
+from app.shared.infrastructure.db.session import async_session_factory
+from app.shared.infrastructure.db.models import UserORM
+from app.shared.infrastructure.crypto.bcrypt_password_hasher import BcryptPasswordHasher
 
 async def create_superuser():
+    hasher = BcryptPasswordHasher()
     async with async_session_factory() as session:
-        data = SignupRequest(
+        user = UserORM(
             username="admin",
-            password="AdminPass123!",
-            email="admin@example.com"
+            password_hash=hasher.hash("AdminPass123!"),
+            email="admin@example.com",
+            is_super_user=True,
+            is_active=True,
         )
-        user = await AuthService.signup(session, data)
-        # Set super user
-        user.is_super_user = True
+        session.add(user)
         await session.commit()
         print(f"Super user created: {user.username}")
 ```
@@ -479,15 +480,16 @@ FastAPI `/health` endpoint recommended for Cloud Run health checks.
 Add to `app/api/v1/health.py`:
 
 ```python
-from fastapi import APIRouter, Depends
-from app.db.session import get_db
+from fastapi import APIRouter
+from sqlalchemy import text
+from app.shared.infrastructure.db.session import async_session_factory
 
 router = APIRouter()
 
 @router.get("/health")
-async def health(db: AsyncSession = Depends(get_db)):
-    # Simple DB check also verifies Redis via liveness
-    await db.execute(text("SELECT 1"))
+async def health():
+    async with async_session_factory() as session:
+        await session.execute(text("SELECT 1"))
     return {"status": "healthy"}
 ```
 
@@ -504,7 +506,7 @@ gcloud run services update access-control-service \
 ### GCP Cloud Logging
 
 - All logs from Cloud Run automatically sent to Cloud Logging in JSON format
-- Structured logs (`app/core/logging.py`) parsed by Cloud Logging agent
+- Structured logs (`app/core/logging.py`) in JSON format, parsed by Cloud Logging agent
 - View logs: `gcloud logging read "resource.type=cloud_run_revision AND resource.service.name=access-control-service"`
 
 ### Custom Metrics
@@ -723,8 +725,8 @@ jobs:
 
 ## References
 
-- Lok: `app/main.py` (startup verification, lifespan)
+- App entry point: `app/main.py` (startup verification, lifespan)
 - Config: `app/config.py` (all settings)
-- Database: `app/db/session.py` (connection pooling)
-- Redis: `app/db/redis.py` (client setup)
-- Keys: `app/core/keys.py` (RSA loading)
+- Database: `app/shared/infrastructure/db/session.py` (connection pooling)
+- Redis: `app/shared/infrastructure/cache/redis.py` (client setup)
+- Keys: `app/auth/infrastructure/crypto/key_pair.py` (RSA loading)
