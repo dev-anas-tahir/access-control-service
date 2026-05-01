@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.shared.infrastructure.http.schemas import OrmSchema
+
 from app.auth.application.dto import (
     LoginInput,
     LogoutInput,
@@ -52,18 +54,14 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-class UserResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class UserResponse(OrmSchema):
     id: UUID
     username: str
     email: EmailStr | None = None
     created_at: datetime
 
 
-class MeResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class MeResponse(OrmSchema):
     id: UUID
     username: str
     roles: list[str]

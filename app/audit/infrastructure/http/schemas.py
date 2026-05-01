@@ -1,12 +1,10 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from app.shared.infrastructure.http.schemas import OrmSchema
 
 
-class AuditLogResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class AuditLogResponse(OrmSchema):
     id: UUID
     actor_id: UUID | None
     action: str

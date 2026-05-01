@@ -40,6 +40,10 @@ from app.rbac.infrastructure.http.schemas import (
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+def _actor_id(payload: TokenPayload) -> UUID:
+    return UUID(str(payload["sub"]))
+
+
 @router.post(
     "/roles", response_model=RoleResponse, status_code=status.HTTP_201_CREATED
 )
@@ -52,7 +56,7 @@ async def create_role(
         CreateRoleInput(
             name=data.name,
             description=data.description,
-            actor_id=UUID(str(payload["sub"])),
+            actor_id=_actor_id(payload),
         )
     )
     return RoleResponse(
@@ -72,7 +76,7 @@ async def delete_role(
     use_case: DeleteRoleUseCase = Depends(get_delete_role_use_case),
 ) -> None:
     await use_case.execute(
-        DeleteRoleInput(role_id=role_id, actor_id=UUID(str(payload["sub"])))
+        DeleteRoleInput(role_id=role_id, actor_id=_actor_id(payload))
     )
 
 
@@ -92,7 +96,7 @@ async def assign_permission(
             role_id=role_id,
             resource=data.resource,
             action=data.action,
-            actor_id=UUID(str(payload["sub"])),
+            actor_id=_actor_id(payload),
         )
     )
     return RolePermissionResponse(
@@ -113,7 +117,7 @@ async def revoke_permission(
         RevokePermissionInput(
             role_id=role_id,
             scope_key=scope,
-            actor_id=UUID(str(payload["sub"])),
+            actor_id=_actor_id(payload),
         )
     )
 
@@ -133,7 +137,7 @@ async def assign_role_to_user(
         AssignRoleToUserInput(
             user_id=user_id,
             role_id=data.role_id,
-            actor_id=UUID(str(payload["sub"])),
+            actor_id=_actor_id(payload),
         )
     )
     return UserRoleResponse(user_id=result.user_id, role_id=result.role_id)
@@ -154,6 +158,6 @@ async def revoke_role_from_user(
         RevokeRoleFromUserInput(
             user_id=user_id,
             role_id=role_id,
-            actor_id=UUID(str(payload["sub"])),
+            actor_id=_actor_id(payload),
         )
     )

@@ -1,7 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
+
+from app.shared.infrastructure.http.schemas import OrmSchema
 
 
 class RoleCreate(BaseModel):
@@ -9,9 +11,7 @@ class RoleCreate(BaseModel):
     description: str | None = None
 
 
-class RoleResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class RoleResponse(OrmSchema):
     id: UUID
     name: str
     description: str | None = None
