@@ -4,10 +4,15 @@ from datetime import datetime
 from sqlalchemy import UUID, Boolean, DateTime, ForeignKey, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.shared.infrastructure.db.base import Base, SoftDeleteMixin, TimestampMixin
+from app.shared.infrastructure.db.base import (
+    Base,
+    SoftDeleteMixin,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+)
 
 
-class Role(SoftDeleteMixin, TimestampMixin, Base):
+class Role(UUIDPrimaryKeyMixin, SoftDeleteMixin, TimestampMixin, Base):
     """
     Role model representing a role in the system.
 
@@ -27,9 +32,6 @@ class Role(SoftDeleteMixin, TimestampMixin, Base):
 
     __tablename__ = "roles"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
-    )
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_system: Mapped[bool] = mapped_column(
@@ -50,7 +52,7 @@ class Role(SoftDeleteMixin, TimestampMixin, Base):
     )
 
 
-class Permission(Base):
+class Permission(UUIDPrimaryKeyMixin, Base):
     """
     Permission model representing a permission in the system.
 
@@ -67,9 +69,6 @@ class Permission(Base):
 
     __tablename__ = "permissions"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
-    )
     resource: Mapped[str] = mapped_column(String(100), nullable=False)
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     scope_key: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)

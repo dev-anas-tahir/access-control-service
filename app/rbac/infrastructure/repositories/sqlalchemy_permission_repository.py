@@ -1,16 +1,10 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.infrastructure.repositories.mappers import _permission_orm_to_domain
 from app.rbac.infrastructure.orm.role import Permission as PermissionORM
 from app.shared.domain.entities.permission import Permission
 from app.shared.domain.values.scope_key import ScopeKey
-
-
-def _permission_orm_to_domain(orm: PermissionORM) -> Permission:
-    return Permission(
-        id=orm.id,
-        scope_key=ScopeKey(resource=orm.resource, action=orm.action),
-    )
 
 
 class SqlAlchemyPermissionRepository:
