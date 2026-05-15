@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is the **shop-monorepo** — a `uv` workspace containing four microservices and shared packages for an ecommerce platform. The primary service is `services/iam-service`, a full-featured IAM/RBAC system deployed to GCP.
+This is the **Shop-Monorepo** — a `uv` workspace containing four microservices and shared packages for an ecommerce platform. The primary service is `services/iam-service`, a full-featured IAM/RBAC system deployed to GCP.
 
 **Workspace members**: `services/iam-service`, `services/catalog-service`, `services/order-service`, `services/notification-service`, `packages/shared`
 
