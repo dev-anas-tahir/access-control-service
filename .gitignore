@@ -8,10 +8,18 @@ wheels/
 
 # Virtual environments
 .venv
-keys/
+
+# RSA keys (generate at deploy time via GCP Secret Manager)
+**/keys/*.pem
 
 # Env files
 .env
+**/.env
 
 # Dot files
 .*
+
+# Node (future web/mobile apps)
+node_modules/
+.next/
+.expo/

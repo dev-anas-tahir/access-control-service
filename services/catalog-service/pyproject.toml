@@ -1,0 +1,30 @@
+[project]
+name = "catalog-service"
+version = "0.1.0"
+description = "Product catalog service"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "fastapi[standard]>=0.128.8",
+    "sqlalchemy>=2.0.48",
+    "alembic>=1.16.5",
+    "asyncpg>=0.31.0",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.11.0",
+    "shared",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.15.4",
+]
+
+[tool.uv.sources]
+shared = { workspace = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]

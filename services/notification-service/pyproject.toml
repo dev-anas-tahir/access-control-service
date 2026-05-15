@@ -1,0 +1,27 @@
+[project]
+name = "notification-service"
+version = "0.1.0"
+description = "Notification service (email, push via PubSub events)"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "fastapi[standard]>=0.128.8",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.11.0",
+    "google-cloud-pubsub>=2.35.0",
+    "shared",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.15.4",
+]
+
+[tool.uv.sources]
+shared = { workspace = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]

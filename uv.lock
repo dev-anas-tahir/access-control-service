@@ -2,61 +2,14 @@ version = 1
 revision = 3
 requires-python = "==3.13.*"
 
-[[package]]
-name = "access-control-service"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "alembic" },
-    { name = "asyncpg" },
-    { name = "bcrypt" },
-    { name = "cryptography" },
-    { name = "fastapi", extra = ["standard"] },
-    { name = "google-cloud-pubsub" },
-    { name = "greenlet" },
-    { name = "passlib", extra = ["bcrypt"] },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "pyjwt", extra = ["crypto"] },
-    { name = "redis" },
-    { name = "sqlalchemy" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "alembic", specifier = ">=1.16.5" },
-    { name = "asyncpg", specifier = ">=0.31.0" },
-    { name = "bcrypt", specifier = "==4.0.1" },
-    { name = "cryptography", specifier = ">=46.0.5" },
-    { name = "fastapi", extras = ["standard"], specifier = ">=0.128.8" },
-    { name = "google-cloud-pubsub", specifier = ">=2.35.0" },
-    { name = "greenlet", specifier = ">=3.2.5" },
-    { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "pydantic-settings", specifier = ">=2.11.0" },
-    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.11.0" },
-    { name = "redis", specifier = ">=7.0.1" },
-    { name = "sqlalchemy", specifier = ">=2.0.48" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "mypy", specifier = ">=1.19.1" },
-    { name = "pytest", specifier = ">=8.4.2" },
-    { name = "pytest-asyncio", specifier = ">=1.2.0" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
-    { name = "ruff", specifier = ">=0.15.4" },
+[manifest]
+members = [
+    "catalog-service",
+    "iam-service",
+    "notification-service",
+    "order-service",
+    "shared",
+    "shop-monorepo",
 ]
 
 [[package]]
@@ -136,6 +89,49 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/87/69/edacb37481d360d06fc947dab5734aaf511acb7d1a1f9e2849454376c0f8/bcrypt-4.0.1-cp36-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:e9a51bbfe7e9802b5f3508687758b564069ba937748ad7b9e890086290d2f79e", size = 624290, upload-time = "2022-10-09T15:36:31.251Z" },
     { url = "https://files.pythonhosted.org/packages/aa/ca/6a534669890725cbb8c1fb4622019be31813c8edaa7b6d5b62fc9360a17e/bcrypt-4.0.1-cp36-abi3-win32.whl", hash = "sha256:2caffdae059e06ac23fce178d31b4a702f2a3264c20bfb5ff541b338194d8fab", size = 159428, upload-time = "2022-10-09T15:36:32.893Z" },
     { url = "https://files.pythonhosted.org/packages/46/81/d8c22cd7e5e1c6a7d48e41a1d1d46c92f17dae70a54d9814f746e6027dec/bcrypt-4.0.1-cp36-abi3-win_amd64.whl", hash = "sha256:8a68f4341daf7522fe8d73874de8906f3a339048ba406be6ddc1b3ccb16fc0d9", size = 152930, upload-time = "2022-10-09T15:36:34.635Z" },
+]
+
+[[package]]
+name = "catalog-service"
+version = "0.1.0"
+source = { virtual = "services/catalog-service" }
+dependencies = [
+    { name = "alembic" },
+    { name = "asyncpg" },
+    { name = "fastapi", extra = ["standard"] },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "shared" },
+    { name = "sqlalchemy" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.16.5" },
+    { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.128.8" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pydantic-settings", specifier = ">=2.11.0" },
+    { name = "shared", editable = "packages/shared" },
+    { name = "sqlalchemy", specifier = ">=2.0.48" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-asyncio", specifier = ">=1.2.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = ">=0.15.4" },
 ]
 
 [[package]]
@@ -597,6 +593,63 @@ wheels = [
 ]
 
 [[package]]
+name = "iam-service"
+version = "0.1.0"
+source = { virtual = "services/iam-service" }
+dependencies = [
+    { name = "alembic" },
+    { name = "asyncpg" },
+    { name = "bcrypt" },
+    { name = "cryptography" },
+    { name = "fastapi", extra = ["standard"] },
+    { name = "google-cloud-pubsub" },
+    { name = "greenlet" },
+    { name = "passlib", extra = ["bcrypt"] },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pyjwt", extra = ["crypto"] },
+    { name = "redis" },
+    { name = "sqlalchemy" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.16.5" },
+    { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "bcrypt", specifier = "==4.0.1" },
+    { name = "cryptography", specifier = ">=46.0.5" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.128.8" },
+    { name = "google-cloud-pubsub", specifier = ">=2.35.0" },
+    { name = "greenlet", specifier = ">=3.2.5" },
+    { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pydantic-settings", specifier = ">=2.11.0" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.11.0" },
+    { name = "redis", specifier = ">=7.0.1" },
+    { name = "sqlalchemy", specifier = ">=2.0.48" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "mypy", specifier = ">=1.19.1" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-asyncio", specifier = ">=1.2.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = ">=0.15.4" },
+]
+
+[[package]]
 name = "idna"
 version = "3.11"
 source = { registry = "https://pypi.org/simple" }
@@ -753,6 +806,43 @@ wheels = [
 ]
 
 [[package]]
+name = "notification-service"
+version = "0.1.0"
+source = { virtual = "services/notification-service" }
+dependencies = [
+    { name = "fastapi", extra = ["standard"] },
+    { name = "google-cloud-pubsub" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "shared" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.128.8" },
+    { name = "google-cloud-pubsub", specifier = ">=2.35.0" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pydantic-settings", specifier = ">=2.11.0" },
+    { name = "shared", editable = "packages/shared" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-asyncio", specifier = ">=1.2.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = ">=0.15.4" },
+]
+
+[[package]]
 name = "opentelemetry-api"
 version = "1.40.0"
 source = { registry = "https://pypi.org/simple" }
@@ -790,6 +880,53 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/6d/c0/4ae7973f3c2cfd2b6e321f1675626f0dab0a97027cc7a297474c9c8f3d04/opentelemetry_semantic_conventions-0.61b0.tar.gz", hash = "sha256:072f65473c5d7c6dc0355b27d6c9d1a679d63b6d4b4b16a9773062cb7e31192a", size = 145755, upload-time = "2026-03-04T14:17:32.664Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b2/37/cc6a55e448deaa9b27377d087da8615a3416d8ad523d5960b78dbeadd02a/opentelemetry_semantic_conventions-0.61b0-py3-none-any.whl", hash = "sha256:fa530a96be229795f8cef353739b618148b0fe2b4b3f005e60e262926c4d38e2", size = 231621, upload-time = "2026-03-04T14:17:19.33Z" },
+]
+
+[[package]]
+name = "order-service"
+version = "0.1.0"
+source = { virtual = "services/order-service" }
+dependencies = [
+    { name = "alembic" },
+    { name = "asyncpg" },
+    { name = "fastapi", extra = ["standard"] },
+    { name = "google-cloud-pubsub" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "shared" },
+    { name = "sqlalchemy" },
+    { name = "stripe" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.16.5" },
+    { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.128.8" },
+    { name = "google-cloud-pubsub", specifier = ">=2.35.0" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pydantic-settings", specifier = ">=2.11.0" },
+    { name = "shared", editable = "packages/shared" },
+    { name = "sqlalchemy", specifier = ">=2.0.48" },
+    { name = "stripe", specifier = ">=12.0.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-asyncio", specifier = ">=1.2.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = ">=0.15.4" },
 ]
 
 [[package]]
@@ -1176,6 +1313,23 @@ wheels = [
 ]
 
 [[package]]
+name = "shared"
+version = "0.1.0"
+source = { editable = "packages/shared" }
+dependencies = [
+    { name = "cryptography" },
+    { name = "pydantic" },
+    { name = "pyjwt", extra = ["crypto"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "cryptography", specifier = ">=46.0.5" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.11.0" },
+]
+
+[[package]]
 name = "shellingham"
 version = "1.5.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1183,6 +1337,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/58/15/8b3609fd3830ef7b2
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl", hash = "sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686", size = 9755, upload-time = "2023-10-24T04:13:38.866Z" },
 ]
+
+[[package]]
+name = "shop-monorepo"
+version = "0.1.0"
+source = { virtual = "." }
 
 [[package]]
 name = "sqlalchemy"
@@ -1220,6 +1379,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c4/68/79977123bb7be889ad680d79a40f339082c1978b5cfcf62c2d8d196873ac/starlette-0.52.1.tar.gz", hash = "sha256:834edd1b0a23167694292e94f597773bc3f89f362be6effee198165a35d62933", size = 2653702, upload-time = "2026-01-18T13:34:11.062Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/0d/13d1d239a25cbfb19e740db83143e95c772a1fe10202dda4b76792b114dd/starlette-0.52.1-py3-none-any.whl", hash = "sha256:0029d43eb3d273bc4f83a08720b4912ea4b071087a3b48db01b7c839f7954d74", size = 74272, upload-time = "2026-01-18T13:34:09.188Z" },
+]
+
+[[package]]
+name = "stripe"
+version = "15.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/45/26/5d6f5f5beae6f1ff78213e2e6f4fbd431518dcd98733cdd39fb4ba0d01d3/stripe-15.1.0.tar.gz", hash = "sha256:24bd3b6bd0969a4841bd4d7681556a9e35e46c414a07c8590a225fbd5a878450", size = 1501673, upload-time = "2026-04-24T00:18:58.612Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/4e/fd9cb74ddf1e61fb6241e2f6799a81ef99bf6cf2e94f8812ee1cd5458e5d/stripe-15.1.0-py3-none-any.whl", hash = "sha256:bdfb556be08662a41833e6403607ebf12e0062cae4f9b93e2b89b6ba926d7c82", size = 2143199, upload-time = "2026-04-24T00:18:56.027Z" },
 ]
 
 [[package]]

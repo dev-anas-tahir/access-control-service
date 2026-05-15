@@ -1,33 +1,13 @@
 [project]
-name = "access-control-service"
+name = "shop-monorepo"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "Shop monorepo — ecommerce platform"
 requires-python = ">=3.13,<3.14"
-dependencies = [
-    "alembic>=1.16.5",
-    "asyncpg>=0.31.0",
-    "bcrypt==4.0.1",
-    "cryptography>=46.0.5",
-    "fastapi[standard]>=0.128.8",
-    "google-cloud-pubsub>=2.35.0",
-    "greenlet>=3.2.5",
-    "passlib[bcrypt]>=1.7.4",
-    "pydantic>=2.12.5",
-    "pydantic-settings>=2.11.0",
-    "pyjwt[crypto]>=2.11.0",
-    "redis>=7.0.1",
-    "sqlalchemy>=2.0.48",
-]
 
-[dependency-groups]
-dev = [
-    "httpx>=0.28.1",
-    "mypy>=1.19.1",
-    "pytest>=8.4.2",
-    "pytest-asyncio>=1.2.0",
-    "pytest-cov>=7.0.0",
-    "ruff>=0.15.4",
+[tool.uv.workspace]
+members = [
+    "services/*",
+    "packages/*",
 ]
 
 [tool.ruff]
@@ -36,7 +16,3 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-pythonpath = ["."]
