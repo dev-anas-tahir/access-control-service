@@ -1,0 +1,8 @@
+runserver:
+    uv run uvicorn app.main:app --reload --port 8001
+
+makemigrations message:
+    alembic revision --autogenerate -m "{{message}}"
+
+migrate:
+    alembic upgrade head

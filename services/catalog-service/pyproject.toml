@@ -10,17 +10,28 @@ dependencies = [
     "asyncpg>=0.31.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.11.0",
+    "pyjwt[crypto]>=2.11.0",
+    "cryptography>=46.0.0",
+    "google-cloud-pubsub>=2.35.0",
+    "httpx>=0.28.1",
+    "greenlet>=3.2.5",
     "shared",
 ]
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
     "pytest>=8.4.2",
     "pytest-asyncio>=1.2.0",
     "pytest-cov>=7.0.0",
     "ruff>=0.15.4",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
 
 [tool.uv.sources]
 shared = { workspace = true }
