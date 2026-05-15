@@ -4,139 +4,155 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is the **Shop-Monorepo** — a `uv` workspace containing four microservices and shared packages for an ecommerce platform. The primary service is `services/iam-service`, a full-featured IAM/RBAC system deployed to GCP.
+**Shop-Monorepo** — a `uv` workspace containing four Python microservices, shared packages, and frontend app placeholders.
 
-**Workspace members**: `services/iam-service`, `services/catalog-service`, `services/order-service`, `services/notification-service`, `packages/shared`
+| Service | Port | Responsibility |
+|---------|------|----------------|
+| `services/iam-service` | 8000 | Auth, RBAC, audit log — primary service |
+| `services/catalog-service` | 8001 | Product catalog + inventory |
+| `services/order-service` | 8002 | Order lifecycle |
+| `services/notification-service` | 8003 | Event-driven notifications via Pub/Sub |
+
+`packages/shared` — cross-service shared utilities. `apps/web` and `apps/mobile` are frontend placeholders.
 
 ## Commands
 
-All commands assume you are inside `services/iam-service/` unless stated otherwise.
-
-### Setup
+### Workspace (run from repo root)
 ```bash
-# From repo root — installs all workspace dependencies
-uv sync
+uv sync                    # install all workspace dependencies
+docker-compose up          # start all infra + services
+```
 
-# Generate RSA keys (one-time)
+### IAM Service (`services/iam-service/`)
+```bash
+just runserver             # uvicorn app.main:app --reload --port 8000
+just makemigrations "msg"  # alembic revision --autogenerate -m "msg"
+just migrate               # alembic upgrade head
+
+uv run pytest --cov=app --cov-report=term-missing   # all tests with coverage
+uv run pytest tests/unit/ -v                         # unit tests (no DB)
+uv run pytest tests/integration/ -v                  # integration tests (needs TEST_DATABASE_URL)
+uv run pytest tests/unit/rbac/test_create_role_use_case.py -v  # single file
+
+ruff check app tests && ruff format app tests
+```
+
+### Catalog Service (`services/catalog-service/`)
+```bash
+just runserver             # port 8001
+just makemigrations "msg"
+just migrate
+uv run pytest tests/unit/ -v
+uv run pytest tests/integration/ -v
+```
+
+### First-time setup (IAM service)
+```bash
 mkdir -p keys
 openssl genrsa -out keys/private_key.pem 2048
 openssl rsa -in keys/private_key.pem -pubout -out keys/public_key.pem
-
-# Apply migrations
 uv run alembic upgrade head
-```
-
-### Running
-```bash
-uvicorn app.main:app --reload --port 8000
-# or
-just runserver
-```
-
-### Testing
-```bash
-# All tests with coverage
-uv run pytest --cov=app --cov-report=term-missing
-
-# Unit tests only (fast, no DB)
-uv run pytest tests/unit/ -v
-
-# Integration tests (requires real async DB)
-uv run pytest tests/integration/ -v
-
-# Single test file
-uv run pytest tests/unit/rbac/test_create_role_use_case.py -v
-```
-
-### Linting & Formatting
-```bash
-ruff check app tests
-ruff format app tests
-```
-
-### Docker (from repo root)
-```bash
-docker-compose up
-# PostgreSQL :5432, Redis :6379, IAM :8000, Catalog :8001, Order :8002, Notification :8003, Pub/Sub emulator :8085
-```
-
-### Migrations
-```bash
-just makemigrations "describe_change"   # alembic revision --autogenerate -m "..."
-just migrate                             # alembic upgrade head
 ```
 
 ## Architecture
 
-### Hexagonal (Ports & Adapters) with Three Bounded Contexts
+### Hexagonal (Ports & Adapters) — Applied to All Services
 
-`services/iam-service/app/` has three bounded contexts — `auth/`, `rbac/`, `audit/` — each strictly layered:
+Every service and bounded context is strictly layered:
 
 ```
 <context>/
-├── domain/         # Pure Python: entities, value objects, ports (Protocol), exceptions
-├── application/    # Use cases + DTOs; depend only on domain ports
-└── infrastructure/ # Adapters: SQLAlchemy repos, Redis, FastAPI routes, JWT, Pub/Sub
+├── domain/         # Pure Python: dataclasses, Protocol ports, exceptions
+├── application/    # Use cases + DTOs; import only from domain/
+└── infrastructure/ # SQLAlchemy, Redis, FastAPI, JWT, Pub/Sub adapters
 ```
 
-**The domain layer has zero imports from FastAPI, SQLAlchemy, Redis, or PyJWT.** Use cases receive concrete implementations injected at startup via `composition.py` files.
+**The domain layer must never import from FastAPI, SQLAlchemy, Redis, or PyJWT.** Use cases receive concrete implementations injected via `<context>/infrastructure/composition.py` using FastAPI `Depends`.
 
-### Cross-cutting modules
-- `app/shared/` — `User`, `Role`, `Permission` entities and value objects shared across bounded contexts
-- `app/core/` — Logging, middleware, request context (correlation IDs)
-- `app/config.py` — `pydantic-settings` settings class; all config via env vars
-- `app/main.py` — App factory, lifespan startup/shutdown, router registration
+### IAM Service — Three Bounded Contexts
 
-### Authentication Flow
-- RS256 JWTs with RSA key pairs (paths from `PRIVATE_KEY_PATH` / `PUBLIC_KEY_PATH`)
-- Access tokens: short-lived (default 15 min)
-- Refresh tokens: 7-day expiry stored in Redis, delivered via httpOnly cookies, JTI revocation prevents reuse
-- bcrypt password hashing with lazy migration path from Django's PBKDF2
+`app/auth/`, `app/rbac/`, `app/audit/` — each independently layered. Detailed map: `services/iam-service/CLAUDE.md`.
 
-### RBAC & Audit Decoupling via Domain Events
-RBAC use cases emit domain events (`RoleCreated`, `PermissionGranted`, `UserRoleAssigned`, etc.). The Unit of Work collects events post-commit and dispatches them to the audit logger — keeping `rbac/` and `audit/` fully decoupled. All RBAC mutation operations require the `is_superuser` flag.
+**Cross-cutting modules:**
+- `app/shared/domain/` — canonical `User`, `Role`, `Permission`, `AuditLog` entities; `Email` and `ScopeKey` value objects; `DomainEvent` base
+- `app/shared/infrastructure/` — ORM mixins (`UUIDPrimaryKeyMixin`, `TimestampMixin`, `SoftDeleteMixin`), `RSAKeyPair` singleton, `BcryptPasswordHasher`, JWT issuer/verifier, Redis client, rate limiting
+- `app/core/` — `RequestResponseMiddleware` (request-ID injection, structured logging)
+- `app/config.py` — `Settings(BaseSettings)`; all config via env vars
 
-### Database
-- SQLAlchemy 2.x async ORM with `asyncpg` driver
-- Alembic migrations in `services/iam-service/alembic/`
-- `SoftDeleteMixin` for soft deletes, `UUIDMixin` for primary keys
-- Pool: `pool_size=10`, `max_overflow=20` (configurable via env)
+**RBAC → Audit decoupling:** RBAC use cases call `uow.add_event(RoleCreated(...))`. After `uow.commit()`, the Unit of Work dispatches collected events to `SqlAlchemyAuditLogger` — the two contexts never import each other.
 
-### Caching (Redis)
-- Refresh token storage and JTI revocation set
-- Rate limiting keyed by IP and username
+### Catalog Service — Two Bounded Contexts
 
-## Key Environment Variables
+`app/catalog/` — `Product`, `ProductVariant`, `Category` aggregates. Products are never directly purchasable; `ProductVariant` is the purchasable unit with its own `sku`, `price`, and JSONB `attributes`.
 
-See `.env.example` in `services/iam-service/`. Required at minimum:
-- `DATABASE_URL`, `TEST_DATABASE_URL`
-- `REDIS_URL`
-- `PRIVATE_KEY_PATH`, `PUBLIC_KEY_PATH`
-- `JWT_ISSUER`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `REFRESH_TOKEN_EXPIRE_DAYS`
-- `GCP_PROJECT_ID`, `PUBSUB_TOPIC_ID` (for Pub/Sub event publishing)
+`app/inventory/` — `Inventory` aggregate tracking `quantity_on_hand` and `quantity_reserved`. Available stock = `on_hand − reserved`. Reservations are soft holds placed during checkout.
 
-## Testing Conventions
+**Key invariants:** `ProductVariant` SKU is globally unique. Hard deletes are forbidden — use `Product.status = inactive`. `ProductPublished` fires only on `inactive → active` transition.
 
-- **Unit tests** (`tests/unit/`): pure logic, all external dependencies mocked via `unittest.mock` or `pytest` fixtures — no DB or network
-- **Integration tests** (`tests/integration/`): real async PostgreSQL, `httpx.AsyncClient` against the running app, Pub/Sub mocked
-- Shared fixtures live in `tests/conftest.py`: async engine, DB session override, mock Redis client, in-memory RSA key pair for JWT
+**Auth:** Reads are public. Mutations require a valid RS256 JWT (from iam-service) with `catalog:write` claim. JWKS fetched from iam-service at startup and cached in-process.
+
+### Authentication Flow (IAM)
+
+1. `POST /api/v1/auth/login` — verify password, issue RS256 JWT access token + refresh token stored in Redis
+2. `POST /api/v1/auth/refresh` — consume httpOnly cookie refresh token, check JTI revocation, issue new pair
+3. `POST /api/v1/auth/logout` — revoke JTI, delete from Redis
+
+Password hashing via `passlib` with `bcrypt` + `django_pbkdf2_sha256` schemes — auto-migrates Django hashes on first login.
+
+### Redis Key Patterns
+
+| Key | TTL |
+|-----|-----|
+| `refresh_token:<token>` | 7 days |
+| `revoked_jti:<jti>` | remaining access token lifetime |
+| `rate_limit:ip:<ip>:<path>` | 60 s |
+| `rate_limit:username:<username>:<path>` | 300 s |
+
+## API Standards
+
+Applies across all services. Full spec: `docs/standards/api.md`.
+
+- URLs: `/api/v{n}/{plural-resource}` — no verbs, nested max one level, admin paths under `/admin/`
+- Auth: `Authorization: Bearer <access_token>`; refresh token is an httpOnly cookie only
+- Errors: `{ "detail": "..." }` — FastAPI 422 shape preserved for validation errors
+- Pagination: `?page=1&page_size=20` — response is a plain array, no envelope
+- JWKS endpoint (`GET /.well-known/jwks.json`) is always public
 
 ## Code Conventions
 
-- Python 3.13; modern type hints (`list[str]`, `X | None`, no `Optional`)
+- Python 3.13; modern type hints (`list[str]`, `X | None`, no `Optional`); full return type annotations
 - Async-first — all route handlers, use cases, and repository methods are `async def`
-- Google-style docstrings
-- Ruff enforced: line-length 88, rules E, F, I
+- Ruff: `line-length = 88`, rules `E, F, I`
+- Pydantic v2: separate input/output schemas (`UserCreate` / `UserRead`); response schemas from ORM inherit `OrmSchema` (`model_config = ConfigDict(from_attributes=True)`)
+- Google-style docstrings; one-line only; omit when name and signature are self-explanatory
+- Use `PyJWT` with `cryptography` — never `python-jose`
+- Use `server_default` for DB-generated column defaults, `default` for Python-side defaults
+- Routes are thin: validate input → call use case → return response schema; no business logic in routes
 
-## Deployment
+## Testing Conventions
 
-CI/CD via `.github/workflows/iam-service.yml`:
-1. **Lint** — `ruff check`
-2. **Test** — pytest against ephemeral PostgreSQL 17 + Redis 7 containers
-3. **Deploy** (on `main`) — builds Docker image, pushes to GCP Artifact Registry, deploys to Cloud Run
+- **Unit tests** (`tests/unit/`): mock all ports with `AsyncMock` or stub `Protocol` implementations — no DB or network, must be fast. RBAC unit tests use `FakeRbacUnitOfWork` from `tests/unit/rbac/fakes.py`.
+- **Integration tests** (`tests/integration/`): real async PostgreSQL via `TEST_DATABASE_URL`, `httpx.AsyncClient`, Pub/Sub mocked
+- **Shared fixtures** (`tests/conftest.py`): `engine` (session-scope, creates all tables), `db` (function-scope, truncates after each test), `mock_redis` (session-scope `AsyncMock`), `mock_jwt` (in-memory 2048-bit RSA pair)
 
-Target infra: GCP Cloud SQL (PostgreSQL 17), GCP Memorystore (Redis), GCP Cloud Run, GCP Pub/Sub.
+## Constraints
+
+**Require explicit confirmation before:**
+- Generating or modifying Alembic migration files
+- Changing SQLAlchemy model definitions
+- Changing JWT signing algorithm or key loading logic
+- Deleting or renaming existing API routes
+
+**Forbidden:**
+- Committing `.env` files, `*.pem` keys, or any secrets
+- Using `python-jose` — always use `PyJWT` with `cryptography`
+- Synchronous SQLAlchemy calls inside async context
+- `print()` for debugging — use the structured logger
+- Hardcoding config values that belong in `.env`
 
 ## Further Reading
 
-Architecture decision records and diagrams are in `services/iam-service/docs/` (00-executive-summary through 08-deployment-operations).
+- **IAM service deep dive**: `services/iam-service/CLAUDE.md` — entity tables, full API surface, fixture details, ORM association tables
+- **Agent-mode instructions**: `services/iam-service/AGENTS.md` — PR protocol, boundary constraints
+- **Catalog domain glossary**: `services/catalog-service/CONTEXT.md`
+- **Architecture docs & ADRs**: `docs/` — service map, auth flow, hexagonal/JWT/domain-events decisions, API + Python standards, runbooks

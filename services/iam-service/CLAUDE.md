@@ -43,14 +43,23 @@ Each of `auth/`, `rbac/`, `audit/` is independently layered:
 <context>/
 ├── domain/         # Pure Python: dataclasses, Protocol ports, exceptions
 ├── application/    # Use cases + DTOs; import only from domain/
-└── infrastructure/ # SQLAlchemy, Redis, FastAPI, JWT, Pub/Sub adapters
+└── infrastructure/
+    ├── composition.py        # FastAPI Depends wiring — only place concrete types are assembled
+    ├── http/routes.py        # Thin handlers: validate → call use case → return schema
+    ├── http/exception_mapper.py  # Maps domain exceptions to HTTPException
+    ├── orm/                  # SQLAlchemy ORM models
+    └── repositories/         # SqlAlchemy implementations of domain ports
 ```
 
-**The domain layer must never import from FastAPI, SQLAlchemy, Redis, or PyJWT.** Use cases receive concrete implementations injected via `<context>/infrastructure/composition.py`.
+**The domain layer must never import from FastAPI, SQLAlchemy, Redis, or PyJWT.**
+
+### Exception mapping pattern
+
+Domain exceptions never become `HTTPException` inside routes. Each bounded context registers its own handlers on the FastAPI app via `register_<context>_exception_handlers(app)` in `exception_mapper.py`. Routes just call use cases and let exceptions propagate.
 
 ### Shared modules
 - `app/shared/domain/` — canonical `User`, `Role`, `Permission`, `AuditLog` entities; `Email` and `ScopeKey` value objects; `DomainEvent` base class
-- `app/shared/infrastructure/` — ORM mixins (`UUIDPrimaryKeyMixin`, `TimestampMixin`, `SoftDeleteMixin`), `RSAKeyPair` singleton, `BcryptPasswordHasher`, JWT issuer/verifier, Redis client, rate limiting
+- `app/shared/infrastructure/` — ORM mixins (`UUIDPrimaryKeyMixin`, `TimestampMixin`, `SoftDeleteMixin`), `RSAKeyPair` singleton loaded once at startup, `BcryptPasswordHasher`, JWT issuer/verifier, Redis client, rate limiting
 - `app/core/` — `RequestResponseMiddleware` (request-ID injection, structured logging)
 - `app/config.py` — `Settings(BaseSettings)` singleton; all config via env vars
 
@@ -63,11 +72,13 @@ Each of `auth/`, `rbac/`, `audit/` is independently layered:
 | `AuditLog` | `id`, `actor_id`, `action`, `entity_type`, `entity_id`, `payload: dict` |
 
 ### Auth flow
-1. `POST /api/v1/auth/login` — verify password, build `TokenClaims` (sub, username, roles, permissions, is_super_user), issue RS256 JWT access token + refresh token stored in Redis
+1. `POST /api/v1/auth/login` — verify password, build `TokenClaims` (`sub`, `username`, `roles`, `permissions`, `is_super_user`, `jti`), issue RS256 JWT access token + refresh token stored in Redis
 2. `POST /api/v1/auth/refresh` — consume refresh token from httpOnly cookie, check JTI revocation set, issue new pair
 3. `POST /api/v1/auth/logout` — revoke JTI, delete refresh token from Redis
 
-Password hashing uses `passlib` with schemes `["bcrypt", "django_pbkdf2_sha256"]` — auto-migrates Django hashes to bcrypt on first login.
+Password hashing uses `passlib` with schemes `["bcrypt", "django_pbkdf2_sha256"]` — auto-migrates Django hashes to bcrypt on first login via `needs_update()`.
+
+Every protected request checks JTI against `RedisRevocationStore` — missing this check means logout doesn't invalidate tokens.
 
 ### RBAC → Audit decoupling via Domain Events
 RBAC use cases call `uow.add_event(RoleCreated(...))`. After `uow.commit()`, the Unit of Work dispatches collected events to `SqlAlchemyAuditLogger` — the two contexts never import each other.
@@ -79,14 +90,14 @@ Domain events: `RoleCreated`, `RoleDeleted`, `PermissionGranted`, `PermissionRev
 |--------|---------|
 | `/api/v1/auth` | auth — signup, login, refresh, logout, /me |
 | `/api/v1/admin` | rbac — roles, permissions, user-role assignments (super user only) |
-| `/api/v1/audit` (TBD) | audit — paginated log read |
-| `/.well-known/jwks.json` | JWKS endpoint |
+| `/api/v1/audit` | audit — paginated log read |
+| `/.well-known/jwks.json` | JWKS — public key for downstream JWT verification |
 
-All admin routes are guarded by `require_super_user` dependency (checks `is_super_user` JWT claim).
+All admin routes are guarded by `require_super_user` dependency (checks `is_super_user` claim in JWT).
 
 ### Rate limiting
-- `rate_limit_by_ip`: 20 req/min (applied to all auth routes)
-- `rate_limit_by_username`: 5 failed attempts / 5 min (applied to login)
+- `rate_limit_by_ip`: 20 req/min — applied to all auth routes
+- `rate_limit_by_username`: 5 failed attempts / 5 min — applied to login only
 
 ### ORM association tables
 - `user_roles(user_id, role_id, assigned_by, assigned_at)`
@@ -96,16 +107,16 @@ SQLAlchemy queries eagerly load `User.roles → Role.permissions` via `selectinl
 
 ## Tests
 
-**Unit tests** (`tests/unit/`): mock all ports with `AsyncMock` or stub protocols — no DB, no network, must be fast.
+**Unit tests** (`tests/unit/`): use `FakeRbacUnitOfWork` and in-memory fakes from `tests/unit/rbac/fakes.py` — no DB, no network, no real async.
 
-**Integration tests** (`tests/integration/`): use real async PostgreSQL (via `TEST_DATABASE_URL`), `httpx.AsyncClient`, mock Redis and JWT keys.
+**Integration tests** (`tests/integration/`): real async PostgreSQL via `TEST_DATABASE_URL`, `httpx.AsyncClient`, Pub/Sub mocked.
 
 **Shared fixtures** (`tests/conftest.py`):
-- `engine` (session-scope) — creates all tables once, disposes after session; skips if `TEST_DATABASE_URL` unset
+- `engine` (session-scope) — creates all tables once; skips if `TEST_DATABASE_URL` unset
 - `db` (function-scope) — fresh `AsyncSession`, truncates all tables after each test
 - `override_get_db` — overrides `get_db` FastAPI dependency with test session
 - `mock_redis` (session-scope) — `AsyncMock` patched into redis, rate_limit, and auth_composition modules
-- `mock_jwt` (session-scope) — in-memory 2048-bit RSA pair injected into `key_pair` singleton
+- `mock_jwt` (session-scope) — in-memory 2048-bit RSA pair injected into `RSAKeyPair` singleton
 
 ## Environment Variables
 
@@ -116,6 +127,14 @@ See `.env.example`. Required:
 - `GCP_PROJECT_ID` / `PUBSUB_TOPIC_ID`
 - `JWT_ISSUER` (default: `access-control-service`), `ACCESS_TOKEN_EXPIRE_MINUTES` (default: 15), `REFRESH_TOKEN_EXPIRE_DAYS` (default: 7)
 
+## Common pitfalls
+
+- **Missing `await`** on async DB/Redis calls — silent failures or type errors at runtime
+- **`default` vs `server_default`** — use `server_default` for DB-generated values (timestamps), `default=uuid.uuid4` for Python-side
+- **JTI revocation** — every protected route must pass the token through `RedisRevocationStore`; omitting it means logout is a no-op
+- **Wrong JWT library** — always `import jwt` (PyJWT); never `from jose import jwt`
+- **Exposing `password_hash`** in Pydantic response schemas
+
 ## Docs
 
-Architecture decision docs live in `docs/` (00-executive-summary through 09-sequence-diagrams). `docs/03-api-contracts.md` has full HTTP request/response schemas. `docs/05-security-architecture.md` covers JWT/Redis/bcrypt details.
+Full HTTP request/response schemas: `docs/03-api-contracts.md`. JWT/Redis/bcrypt security details: `docs/05-security-architecture.md`. Sequence diagrams: `docs/09-sequence-diagrams.md`.
