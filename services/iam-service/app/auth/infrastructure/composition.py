@@ -41,6 +41,7 @@ def _revocation_store() -> RedisRevocationStore:
 
 # ── Builders ─────────────────────────────────────────────────────────────────
 
+
 def build_signup_use_case() -> SignupUseCase:
     return SignupUseCase(
         uow_factory=_uow_factory,
@@ -85,6 +86,7 @@ def build_revocation_store() -> RedisRevocationStore:
 
 
 # ── FastAPI Depends providers ─────────────────────────────────────────────────
+
 
 def get_signup_use_case() -> SignupUseCase:
     return build_signup_use_case()

@@ -14,9 +14,7 @@ from app.shared.domain.values.scope_key import ScopeKey
 # ── Entity factories ──────────────────────────────────────────────────────────
 
 
-def make_permission(
-    resource: str = "resource", action: str = "read"
-) -> Permission:
+def make_permission(resource: str = "resource", action: str = "read") -> Permission:
     return Permission(
         id=uuid.uuid4(),
         scope_key=ScopeKey(resource=resource, action=action),
@@ -135,9 +133,7 @@ class FakeAssignmentRepository:
 
 class FakeUserReader:
     def __init__(self, users: list[UserSummary] | None = None) -> None:
-        self._store: dict[uuid.UUID, UserSummary] = {
-            u.id: u for u in (users or [])
-        }
+        self._store: dict[uuid.UUID, UserSummary] = {u.id: u for u in (users or [])}
 
     async def find_summary_by_id(self, id: uuid.UUID) -> UserSummary | None:
         return self._store.get(id)

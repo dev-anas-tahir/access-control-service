@@ -3,14 +3,13 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from app.shared.infrastructure.http.schemas import OrmSchema
-
 from app.auth.application.dto import (
     LoginInput,
     LogoutInput,
     RefreshInput,
     SignupInput,
 )
+from app.shared.infrastructure.http.schemas import OrmSchema
 
 
 class SignupRequest(BaseModel):

@@ -37,9 +37,7 @@ async def test_revoke_role_from_user_success():
     use_case = _make_use_case(uow)
 
     await use_case.execute(
-        RevokeRoleFromUserInput(
-            user_id=user.id, role_id=role.id, actor_id=uuid.uuid4()
-        )
+        RevokeRoleFromUserInput(user_id=user.id, role_id=role.id, actor_id=uuid.uuid4())
     )
 
     assert (user.id, role.id) not in assignments._user_roles
@@ -56,9 +54,7 @@ async def test_revoke_role_from_user_emits_domain_event():
     use_case = _make_use_case(uow)
 
     await use_case.execute(
-        RevokeRoleFromUserInput(
-            user_id=user.id, role_id=role.id, actor_id=uuid.uuid4()
-        )
+        RevokeRoleFromUserInput(user_id=user.id, role_id=role.id, actor_id=uuid.uuid4())
     )
 
     events = uow.emitted_events

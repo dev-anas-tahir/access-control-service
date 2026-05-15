@@ -38,9 +38,7 @@ class SqlAlchemyUserRepository:
         return user_orm_to_domain(orm) if orm else None
 
     async def find_by_id(self, id: uuid.UUID) -> User | None:
-        result = await self._session.execute(
-            self._base_query().where(UserORM.id == id)
-        )
+        result = await self._session.execute(self._base_query().where(UserORM.id == id))
         orm = result.scalar_one_or_none()
         return user_orm_to_domain(orm) if orm else None
 

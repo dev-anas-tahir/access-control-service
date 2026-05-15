@@ -21,9 +21,7 @@ class SqlAlchemyAuditLogReader:
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         self._session_factory = session_factory
 
-    async def list_paginated(
-        self, *, page: int, page_size: int
-    ) -> list[AuditLog]:
+    async def list_paginated(self, *, page: int, page_size: int) -> list[AuditLog]:
         offset = (page - 1) * page_size
         async with self._session_factory() as session:
             result = await session.execute(

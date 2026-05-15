@@ -11,9 +11,7 @@ class AssignRoleToUserUseCase:
     def __init__(self, uow_factory: RbacUnitOfWorkFactory) -> None:
         self._uow_factory = uow_factory
 
-    async def execute(
-        self, input: AssignRoleToUserInput
-    ) -> AssignRoleToUserResult:
+    async def execute(self, input: AssignRoleToUserInput) -> AssignRoleToUserResult:
         async with self._uow_factory() as uow:
             user = await uow.users.find_summary_by_id(input.user_id)
             if not user:

@@ -17,9 +17,7 @@ async def get_audit_logs(
     _payload: TokenPayload = Depends(require_super_user),
     use_case: GetAuditLogsUseCase = Depends(get_audit_logs_use_case),
 ) -> list[AuditLogResponse]:
-    result = await use_case.execute(
-        GetAuditLogsInput(page=page, page_size=page_size)
-    )
+    result = await use_case.execute(GetAuditLogsInput(page=page, page_size=page_size))
     return [
         AuditLogResponse(
             id=item.id,

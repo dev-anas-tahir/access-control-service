@@ -35,9 +35,7 @@ def register_auth_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(status_code=500, content={"detail": str(exc)})
 
     @app.exception_handler(TokenExpiredError)
-    async def _token_expired(
-        request: Request, exc: TokenExpiredError
-    ) -> JSONResponse:
+    async def _token_expired(request: Request, exc: TokenExpiredError) -> JSONResponse:
         return JSONResponse(
             status_code=401,
             content={"detail": str(exc)},
@@ -45,9 +43,7 @@ def register_auth_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(InvalidTokenError)
-    async def _invalid_token(
-        request: Request, exc: InvalidTokenError
-    ) -> JSONResponse:
+    async def _invalid_token(request: Request, exc: InvalidTokenError) -> JSONResponse:
         return JSONResponse(
             status_code=401,
             content={"detail": str(exc)},

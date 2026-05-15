@@ -29,9 +29,7 @@ async def test_assign_role_to_user_success():
     use_case = _make_use_case(uow)
 
     result = await use_case.execute(
-        AssignRoleToUserInput(
-            user_id=user.id, role_id=role.id, actor_id=uuid.uuid4()
-        )
+        AssignRoleToUserInput(user_id=user.id, role_id=role.id, actor_id=uuid.uuid4())
     )
 
     assert result.user_id == user.id
@@ -51,9 +49,7 @@ async def test_assign_role_to_user_emits_domain_event():
     use_case = _make_use_case(uow)
 
     await use_case.execute(
-        AssignRoleToUserInput(
-            user_id=user.id, role_id=role.id, actor_id=uuid.uuid4()
-        )
+        AssignRoleToUserInput(user_id=user.id, role_id=role.id, actor_id=uuid.uuid4())
     )
 
     events = uow.emitted_events

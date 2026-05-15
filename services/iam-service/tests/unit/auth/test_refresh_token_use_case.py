@@ -58,6 +58,7 @@ async def test_refresh_raises_when_token_not_found():
 async def test_refresh_raises_when_user_not_found():
     refresh_store = FakeRefreshTokenStore()
     import uuid
+
     await refresh_store.put("valid_token", uuid.uuid4(), 7 * 86400)
 
     uow = FakeAuthUnitOfWork(users=FakeUserRepository([]))

@@ -19,9 +19,7 @@ async def test_delete_role_success():
     uow = FakeRbacUnitOfWork(roles=FakeRoleRepository([role]))
     use_case = _make_use_case(uow)
 
-    await use_case.execute(
-        DeleteRoleInput(role_id=role.id, actor_id=uuid.uuid4())
-    )
+    await use_case.execute(DeleteRoleInput(role_id=role.id, actor_id=uuid.uuid4()))
 
     stored = await uow.roles.find_by_id(role.id)
     assert stored is not None

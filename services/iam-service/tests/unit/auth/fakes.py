@@ -12,6 +12,7 @@ from app.shared.domain.values.scope_key import ScopeKey
 
 # ── Entity factories ──────────────────────────────────────────────────────────
 
+
 def make_permission(scope_key: str = "resource:read") -> Permission:
     return Permission(
         id=uuid.uuid4(),
@@ -47,6 +48,7 @@ def make_user(
 
 # ── Repository fakes ──────────────────────────────────────────────────────────
 
+
 class FakeUserRepository:
     def __init__(self, seed: list[User] | None = None) -> None:
         self._store: dict[uuid.UUID, User] = {u.id: u for u in (seed or [])}
@@ -81,6 +83,7 @@ class FakeRoleRepository:
 
 # ── Unit of Work fake ─────────────────────────────────────────────────────────
 
+
 class FakeAuthUnitOfWork:
     def __init__(
         self,
@@ -108,6 +111,7 @@ class FakeAuthUnitOfWork:
 
 # ── Token store fakes ─────────────────────────────────────────────────────────
 
+
 class FakeRefreshTokenStore:
     def __init__(self) -> None:
         self._store: dict[str, uuid.UUID] = {}
@@ -134,6 +138,7 @@ class FakeRevocationStore:
 
 
 # ── Crypto fakes ──────────────────────────────────────────────────────────────
+
 
 @dataclass
 class FakePasswordHasher:

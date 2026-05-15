@@ -44,9 +44,7 @@ def _actor_id(payload: TokenPayload) -> UUID:
     return UUID(str(payload["sub"]))
 
 
-@router.post(
-    "/roles", response_model=RoleResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/roles", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
 async def create_role(
     data: RoleCreate,
     payload: TokenPayload = Depends(require_super_user),
@@ -150,9 +148,7 @@ async def revoke_role_from_user(
     user_id: UUID,
     role_id: UUID,
     payload: TokenPayload = Depends(require_super_user),
-    use_case: RevokeRoleFromUserUseCase = Depends(
-        get_revoke_role_from_user_use_case
-    ),
+    use_case: RevokeRoleFromUserUseCase = Depends(get_revoke_role_from_user_use_case),
 ) -> None:
     await use_case.execute(
         RevokeRoleFromUserInput(

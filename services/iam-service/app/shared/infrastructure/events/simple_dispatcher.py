@@ -22,9 +22,7 @@ class SimpleEventDispatcher(EventDispatcher):
         """Initialize with empty handler registry."""
         self._handlers: dict[type[DomainEvent], list[EventHandler]] = {}
 
-    def register(
-        self, event_type: type[DomainEvent], handler: EventHandler
-    ) -> None:
+    def register(self, event_type: type[DomainEvent], handler: EventHandler) -> None:
         """Register a handler for a specific event type.
 
         Multiple handlers can be registered for the same event type.

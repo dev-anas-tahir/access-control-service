@@ -19,9 +19,7 @@ def register_rbac_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(status_code=409, content={"detail": str(exc)})
 
     @app.exception_handler(RoleNotFoundError)
-    async def _role_not_found(
-        request: Request, exc: RoleNotFoundError
-    ) -> JSONResponse:
+    async def _role_not_found(request: Request, exc: RoleNotFoundError) -> JSONResponse:
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
     @app.exception_handler(SystemRoleProtectedError)
@@ -43,7 +41,5 @@ def register_rbac_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
     @app.exception_handler(UserNotFoundError)
-    async def _user_not_found(
-        request: Request, exc: UserNotFoundError
-    ) -> JSONResponse:
+    async def _user_not_found(request: Request, exc: UserNotFoundError) -> JSONResponse:
         return JSONResponse(status_code=404, content={"detail": str(exc)})

@@ -4,6 +4,7 @@ from app.auth.application.use_cases.login import LoginUseCase
 from app.auth.application.use_cases.logout import LogoutUseCase
 from app.auth.application.use_cases.refresh_token import RefreshTokenUseCase
 from app.auth.application.use_cases.signup import SignupUseCase
+from app.auth.domain.ports.token_verifier import TokenPayload
 from app.auth.infrastructure.composition import (
     get_login_use_case,
     get_logout_use_case,
@@ -20,7 +21,6 @@ from app.auth.infrastructure.http.schemas import (
     make_logout_input,
     make_refresh_input,
 )
-from app.auth.domain.ports.token_verifier import TokenPayload
 from app.config import settings
 from app.shared.infrastructure.http.rate_limit import (
     rate_limit_by_ip,
