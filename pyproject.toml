@@ -1,7 +1,7 @@
 [project]
-name = "shop-monorepo"
+name = "kosmos-ecommerce"
 version = "0.1.0"
-description = "Shop monorepo — ecommerce platform"
+description = "Kosmos - Comsetics Digital Shop"
 requires-python = ">=3.13,<3.14"
 
 [tool.uv.workspace]
