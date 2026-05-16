@@ -4,7 +4,6 @@ import pytest
 
 from app.inventory.application.dto import ReserveStockInput
 from app.inventory.application.use_cases.reserve_stock import ReserveStockUseCase
-from app.inventory.domain.events import InventoryDepleted
 from app.inventory.domain.exceptions import (
     InsufficientStockError,
     InventoryNotFoundError,
@@ -44,7 +43,9 @@ async def test_reserves_stock_successfully(uow, inventory):
     assert uow.committed
 
 
-async def test_fires_depleted_event_when_available_hits_zero(uow, inventory):
+async def test_reserving_all_available_does_not_emit_depleted(uow, inventory):
+    # InventoryDepleted is tied to on_hand reaching zero, not available.
+    # Reserving never decrements on_hand — depletion happens in commit_reservation.
     use_case = ReserveStockUseCase(uow_factory=lambda: uow)
 
     await use_case.execute(
@@ -55,8 +56,7 @@ async def test_fires_depleted_event_when_available_hits_zero(uow, inventory):
         )
     )
 
-    assert len(uow.emitted_events) == 1
-    assert isinstance(uow.emitted_events[0], InventoryDepleted)
+    assert uow.emitted_events == []
 
 
 async def test_raises_when_insufficient_stock(uow, inventory):

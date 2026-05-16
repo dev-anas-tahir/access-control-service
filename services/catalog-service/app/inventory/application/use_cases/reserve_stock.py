@@ -1,5 +1,4 @@
 from app.inventory.application.dto import InventoryResult, ReserveStockInput
-from app.inventory.domain.events import InventoryDepleted
 from app.inventory.domain.exceptions import (
     InsufficientStockError,
     InventoryNotFoundError,
@@ -22,15 +21,6 @@ class ReserveStockUseCase:
 
             inv.reserve(input.quantity)
             await uow.inventory.save(inv)
-
-            if inv.available == 0:
-                uow.add_event(
-                    InventoryDepleted(
-                        actor_id=input.actor_id,
-                        variant_id=inv.variant_id,
-                    )
-                )
-
             await uow.commit()
 
         return InventoryResult(

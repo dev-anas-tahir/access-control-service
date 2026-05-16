@@ -1,6 +1,8 @@
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+
+from app.inventory.domain.events import InventoryDepleted, InventoryEvent
 
 
 @dataclass
@@ -10,6 +12,7 @@ class Inventory:
     quantity_on_hand: int
     quantity_reserved: int
     updated_at: datetime | None = None
+    _events: list[InventoryEvent] = field(default_factory=list, repr=False)
 
     @property
     def available(self) -> int:
@@ -29,7 +32,19 @@ class Inventory:
             raise ValueError("Restock quantity must be positive")
         self.quantity_on_hand += qty
 
-    def commit_reservation(self, qty: int) -> None:
+    def commit_reservation(
+        self, qty: int, *, actor_id: uuid.UUID | None = None
+    ) -> None:
         commit_qty = min(qty, self.quantity_reserved)
+        was_in_stock = self.quantity_on_hand > 0
         self.quantity_reserved -= commit_qty
         self.quantity_on_hand -= commit_qty
+        if was_in_stock and self.quantity_on_hand == 0:
+            self._events.append(
+                InventoryDepleted(actor_id=actor_id, variant_id=self.variant_id)
+            )
+
+    def collect_events(self) -> list[InventoryEvent]:
+        events = self._events[:]
+        self._events.clear()
+        return events
