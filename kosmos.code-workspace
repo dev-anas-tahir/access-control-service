@@ -1,0 +1,38 @@
+{
+  "folders": [
+    { "name": "root", "path": "." },
+    { "name": "iam-service", "path": "services/iam-service" },
+    { "name": "catalog-service", "path": "services/catalog-service" },
+    { "name": "order-service", "path": "services/order-service" },
+    { "name": "notification-service", "path": "services/notification-service" },
+    { "name": "shared", "path": "packages/shared" }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "${workspaceFolder:root}/.venv/bin/python",
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": ["tests"],
+    "python.analysis.typeCheckingMode": "basic",
+    "[python]": {
+      "editor.defaultFormatter": "charliermarsh.ruff",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.fixAll.ruff": "explicit",
+        "source.organizeImports.ruff": "explicit"
+      }
+    },
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/.pytest_cache": true,
+      "**/.ruff_cache": true,
+      "**/*.egg-info": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.vscode-pylance",
+      "charliermarsh.ruff"
+    ]
+  }
+}
