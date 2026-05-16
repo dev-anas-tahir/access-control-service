@@ -10,6 +10,20 @@ from datetime import datetime
 from typing import Any, Protocol
 
 
+@dataclass(frozen=True)
+class AuditContext:
+    """All audit-relevant facts about a domain event in one place.
+
+    Events that must be audited implement to_audit_context() returning this.
+    The audit handler reads it without knowing any concrete event type.
+    """
+
+    action: str
+    entity_type: str
+    entity_id: uuid.UUID
+    payload: dict[str, Any]
+
+
 @dataclass(frozen=True, kw_only=True)
 class DomainEvent:
     """Base class for all domain events.
@@ -28,6 +42,17 @@ class DomainEvent:
     def event_type(self) -> str:
         """Return the event type name (defaults to class name)."""
         return self.__class__.__name__
+
+    def to_audit_context(self) -> AuditContext:
+        """Return audit-relevant facts for this event.
+
+        Override in auditable events. Raises NotImplementedError by default
+        so non-auditable events fail fast if accidentally routed to the
+        audit handler.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement to_audit_context()"
+        )
 
 
 @dataclass(frozen=True)
