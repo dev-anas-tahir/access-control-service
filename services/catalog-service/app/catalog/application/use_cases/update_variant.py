@@ -1,5 +1,4 @@
 from app.catalog.application.dto import ProductVariantResult, UpdateVariantInput
-from app.catalog.domain.events import ProductPriceChanged
 from app.catalog.domain.exceptions import (
     ProductNotFoundError,
     ProductVariantNotFoundError,
@@ -21,19 +20,12 @@ class UpdateVariantUseCase:
             if not product:
                 raise ProductNotFoundError()
 
-            if input.price is not None and input.price != variant.price:
-                if product.status.value == "active":
-                    uow.add_event(
-                        ProductPriceChanged(
-                            actor_id=input.actor_id,
-                            product_id=product.id,
-                            variant_id=variant.id,
-                            sku=variant.sku,
-                            old_price=variant.price,
-                            new_price=input.price,
-                        )
-                    )
-                variant.price = input.price
+            if input.price is not None:
+                event = product.update_variant_price(
+                    variant, input.price, actor_id=input.actor_id
+                )
+                if event:
+                    uow.add_event(event)
 
             if input.attributes is not None:
                 variant.attributes = input.attributes
