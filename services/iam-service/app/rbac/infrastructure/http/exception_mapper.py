@@ -1,5 +1,4 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 
 from app.rbac.domain.exceptions import (
     PermissionAlreadyAssignedError,
@@ -9,37 +8,18 @@ from app.rbac.domain.exceptions import (
     UserNotFoundError,
 )
 from app.shared.domain.exceptions import SystemRoleProtectedError
+from app.shared.infrastructure.http.exception_utils import register_exception_handlers
 
 
 def register_rbac_exception_handlers(app: FastAPI) -> None:
-    @app.exception_handler(RoleAlreadyExistsError)
-    async def _role_exists(
-        request: Request, exc: RoleAlreadyExistsError
-    ) -> JSONResponse:
-        return JSONResponse(status_code=409, content={"detail": str(exc)})
-
-    @app.exception_handler(RoleNotFoundError)
-    async def _role_not_found(request: Request, exc: RoleNotFoundError) -> JSONResponse:
-        return JSONResponse(status_code=404, content={"detail": str(exc)})
-
-    @app.exception_handler(SystemRoleProtectedError)
-    async def _system_role(
-        request: Request, exc: SystemRoleProtectedError
-    ) -> JSONResponse:
-        return JSONResponse(status_code=403, content={"detail": str(exc)})
-
-    @app.exception_handler(PermissionAlreadyAssignedError)
-    async def _perm_assigned(
-        request: Request, exc: PermissionAlreadyAssignedError
-    ) -> JSONResponse:
-        return JSONResponse(status_code=409, content={"detail": str(exc)})
-
-    @app.exception_handler(PermissionNotFoundError)
-    async def _perm_not_found(
-        request: Request, exc: PermissionNotFoundError
-    ) -> JSONResponse:
-        return JSONResponse(status_code=404, content={"detail": str(exc)})
-
-    @app.exception_handler(UserNotFoundError)
-    async def _user_not_found(request: Request, exc: UserNotFoundError) -> JSONResponse:
-        return JSONResponse(status_code=404, content={"detail": str(exc)})
+    register_exception_handlers(
+        app,
+        {
+            RoleAlreadyExistsError: 409,
+            RoleNotFoundError: 404,
+            SystemRoleProtectedError: 403,
+            PermissionAlreadyAssignedError: 409,
+            PermissionNotFoundError: 404,
+            UserNotFoundError: 404,
+        },
+    )
