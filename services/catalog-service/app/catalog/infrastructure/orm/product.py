@@ -29,7 +29,11 @@ class Product(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
     )
     status: Mapped[ProductStatus] = mapped_column(
-        Enum(ProductStatus, name="product_status"),
+        Enum(
+            ProductStatus,
+            values_callable=lambda enum: [item.value for item in enum],
+            name="product_status",
+        ),
         nullable=False,
         default=ProductStatus.INACTIVE,
         server_default=ProductStatus.INACTIVE.value,
